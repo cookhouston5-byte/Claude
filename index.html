@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Lock-Tube</title>
+  <meta name="description" content="Only the latest videos from the channels you subscribe to.">
+  <meta name="theme-color" content="#111318">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="icon.svg" alt="" width="28" height="28">
+      <span>Lock-Tube</span>
+    </div>
+    <div class="actions" id="actions" hidden>
+      <button id="refreshBtn" class="btn" type="button" title="Check for new videos">Refresh</button>
+      <button id="menuBtn" class="btn ghost" type="button" aria-haspopup="true" aria-expanded="false" title="Settings">⋯</button>
+      <div id="menu" class="menu" hidden>
+        <button id="signOutBtn" type="button">Sign out &amp; clear data</button>
+        <button id="changeClientBtn" type="button">Change Client ID</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="app">
+    <!-- Setup: no Client ID yet -->
+    <section id="setupView" class="panel" hidden>
+      <h1>One-time setup</h1>
+      <p>Lock-Tube signs in with Google so it can read your YouTube subscriptions. Paste the <strong>OAuth Client ID</strong> you created in Google Cloud (see <code>SETUP.md</code>).</p>
+      <form id="setupForm">
+        <label for="clientIdInput">Client ID</label>
+        <input id="clientIdInput" type="text" autocomplete="off" spellcheck="false"
+               placeholder="1234567890-abc123.apps.googleusercontent.com" required>
+        <button class="btn primary" type="submit">Save</button>
+      </form>
+    </section>
+
+    <!-- Signed out -->
+    <section id="signInView" class="panel" hidden>
+      <h1>Just your subscriptions.</h1>
+      <p>No recommendations, no homepage, no rabbit holes. Only the newest videos from channels you subscribe to. Videos open on YouTube.</p>
+      <button id="signInBtn" class="btn primary big" type="button">Sign in with Google</button>
+      <p class="fine">Read-only access. Lock-Tube can't change anything on your YouTube account. Your data stays in this browser.</p>
+    </section>
+
+    <!-- Feed -->
+    <section id="feedView" hidden>
+      <div class="toolbar">
+        <label class="toggle"><input type="checkbox" id="hideWatched"> <span>Hide watched</span></label>
+        <label class="toggle"><input type="checkbox" id="showShorts"> <span>Show Shorts</span></label>
+        <span id="status" class="status" role="status" aria-live="polite"></span>
+      </div>
+      <div id="progress" class="progress" hidden><div id="progressBar"></div></div>
+      <ul id="feed" class="feed"></ul>
+      <p id="empty" class="empty" hidden></p>
+    </section>
+
+    <p id="error" class="error" role="alert" hidden></p>
+  </main>
+
+  <footer class="footer">
+    Video data from <a href="https://www.youtube.com" target="_blank" rel="noopener">YouTube</a> ·
+    <a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener">YouTube Terms</a> ·
+    <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a> ·
+    <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">Revoke access</a>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="app.js"></script>
+</body>
+</html>
