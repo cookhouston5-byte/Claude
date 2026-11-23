@@ -11,7 +11,7 @@ YouTube, minus the distractions. Lock-Tube shows **only the newest videos from t
 
 ## Getting it running
 
-See **[SETUP.md](SETUP.md)**. It takes about 15 minutes and is free.
+Live at **https://lock-tube.onrender.com**. To finish connecting Google sign-in, see **[SETUP.md](SETUP.md)**. It takes about 10 minutes and is free.
 
 ## Files
 
