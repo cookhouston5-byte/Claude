@@ -1,9 +1,9 @@
-# Focus Feed
+# Lock-Tube
 
-YouTube, minus the distractions. Focus Feed shows **only the newest videos from the channels you subscribe to**. There's no homepage, no recommendations and no Shorts (unless you turn them on).
+YouTube, minus the distractions. Lock-Tube shows **only the newest videos from the channels you subscribe to**. There's no homepage, no recommendations and no Shorts (unless you turn them on).
 
 - **Auto-syncs your subscriptions.** Each refresh pulls your current subscription list from YouTube, so a channel you subscribe to on YouTube shows up here automatically.
-- **Videos open on YouTube.** Creators get their views and YouTube shows its normal ads. Focus Feed never downloads or re-hosts anything.
+- **Videos open on YouTube.** Creators get their views and YouTube shows its normal ads. Lock-Tube never downloads or re-hosts anything.
 - **✓ Watched checkmarks.** Opening a video marks it watched. Tap the circle to mark or unmark one yourself. Turn on "Hide watched" to clear finished videos from the list.
 - **Shorts hidden by default**, with a toggle to show them.
 - **Works on phone and computer.** On a phone, use "Add to Home Screen" and it opens like an app.

@@ -1,6 +1,6 @@
 {
-  "name": "Focus Feed",
-  "short_name": "Focus Feed",
+  "name": "Lock-Tube",
+  "short_name": "Lock-Tube",
   "description": "Only the latest videos from the channels you subscribe to.",
   "start_url": "./",
   "scope": "./",

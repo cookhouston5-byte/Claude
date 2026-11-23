@@ -2,6 +2,6 @@
 // See SETUP.md for how to get one (takes about 10 minutes, free).
 // If you leave it empty, the app will ask you for it on first launch
 // and remember it in your browser instead.
-window.FOCUS_FEED_CONFIG = {
+window.LOCKTUBE_CONFIG = {
   clientId: "",
 };

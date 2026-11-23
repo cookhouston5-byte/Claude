@@ -1,4 +1,4 @@
-# Setting up Focus Feed
+# Setting up Lock-Tube
 
 You'll do three things: **put the site online**, **create a free Google "sign-in key"** (a Client ID), and **paste the key into the site**. Plan on about 15 minutes. Nothing here costs money.
 
@@ -21,17 +21,17 @@ Google sign-in only works on a real web address, so we host the site for free on
 ## Step 2: Create your Google Client ID
 
 1. Go to **https://console.cloud.google.com/** and sign in with the **same Google account you use for YouTube**.
-2. **Create a project.** Click the project picker at the top, then **New Project**. Name it something like `Focus Feed` and click **Create**. Make sure it's selected afterward.
+2. **Create a project.** Click the project picker at the top, then **New Project**. Name it something like `Lock-Tube` and click **Create**. Make sure it's selected afterward.
 3. **Turn on the YouTube API.** Search the top bar for **"YouTube Data API v3"**, open it and click **Enable**.
 4. **Set up the sign-in screen.** In the left menu, go to **APIs & Services → OAuth consent screen**. This may be called **Google Auth Platform**. Click **Get started**.
-   - App name: `Focus Feed`. Support email: your email.
+   - App name: `Lock-Tube`. Support email: your email.
    - Audience: **External**.
    - Contact email: your email. Agree to the policy, then click **Create**.
 5. **Add yourself as a tester.** Go to **Audience → Test users → Add users** and enter your Gmail address. Leave the app in **Testing** mode. That means only you (and up to 100 people you add) can use it, and Google doesn't need to review it.
 6. **Allow YouTube read access.** Go to **Data Access → Add or remove scopes**, search for `youtube.readonly`, tick it, then click **Update** and **Save**.
 7. **Create the key.** Go to **Clients → Create client**.
    - Application type: **Web application**
-   - Name: `Focus Feed web`
+   - Name: `Lock-Tube web`
    - Under **Authorized JavaScript origins**, add your site's address **without the part after `.io`**:
      - `https://cookhouston5-byte.github.io`
      - Optionally add `http://localhost:8000` if you want to run it on your own computer.
@@ -47,7 +47,7 @@ Google sign-in only works on a real web address, so we host the site for free on
 **Or set it once for every device:** edit `config.js` and put the ID between the quotes:
 
 ```js
-window.FOCUS_FEED_CONFIG = {
+window.LOCKTUBE_CONFIG = {
   clientId: "1234567890-abcdefg.apps.googleusercontent.com",
 };
 ```

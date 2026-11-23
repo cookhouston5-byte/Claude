@@ -1,4 +1,4 @@
-/* Focus Feed: only the latest videos from channels you subscribe to.
+/* Lock-Tube: only the latest videos from channels you subscribe to.
  *
  * Runs entirely in the browser. Uses Google sign-in (read-only YouTube scope)
  * and the official YouTube Data API v3. Videos always open on YouTube itself,
@@ -41,7 +41,7 @@
   };
 
   // ---------- state ----------
-  const cfg = window.FOCUS_FEED_CONFIG || {};
+  const cfg = window.LOCKTUBE_CONFIG || {};
   let clientId = (cfg.clientId || "").trim() || store.get("clientId", "");
   let tokenClient = null;
   let pendingToken = null; // {resolve, reject} while the Google popup is open
