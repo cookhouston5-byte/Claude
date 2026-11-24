@@ -2,7 +2,7 @@
 
 You do these steps once. Visitors never see a setup form.
 
-Kalmvue (https://kalmvue.onrender.com) is the subscription feed. It stays a free static site. The Google Client ID is public, so it lives in `config.js`. Until you save one, visitors see **Coming soon**.
+Kalmvue (https://kalmvue.onrender.com) is the subscription feed. It stays a free static site. The Google Client ID is public, so it lives in `kalmvue/config.js`. Until you save one, visitors see **Coming soon**.
 
 FixFocus (https://fixfocus.onrender.com) is the repair search. The YouTube key must stay secret, so it lives only in Render, as an environment variable. Until that key is set, visitors see **Temporarily unavailable**.
 
@@ -87,7 +87,7 @@ You can skip the logo. A logo makes Google's brand review stricter, and the site
 
 Kalmvue on Render is already a static site that updates itself when `main` changes. Do not change that service into a web service.
 
-1. Open **https://github.com/cookhouston5-byte/Claude/blob/main/config.js** while you are signed in to GitHub.
+1. Open **https://github.com/cookhouston5-byte/Claude/blob/main/kalmvue/config.js** while you are signed in to GitHub.
 2. Click the pencil (**Edit this file**).
 3. Change only the empty quotes. Paste your Client ID between them:
 
@@ -167,7 +167,7 @@ The free web service sleeps after about 15 minutes with no visitors. The first v
 
 | Site | Visitor who has not signed in | What you did |
 |---|---|---|
-| Kalmvue | A sign-in button. No setup form. | Client ID in `config.js` |
+| Kalmvue | A sign-in button. No setup form. | Client ID in `kalmvue/config.js` |
 | FixFocus | A search box. No setup form. | `YOUTUBE_API_KEY` on the web service |
 
 Friends can use FixFocus right away. They can use Kalmvue only if you add their Gmail address under **Test users**, until Google finishes the review in Part 7.
@@ -237,7 +237,7 @@ After approval, any Google user can sign in, and the "unverified app" warning go
 
 | What you see | What to do |
 |---|---|
-| Kalmvue says "Coming soon" | The Client ID in `config.js` on `main` is still empty, or Render has not finished rebuilding. Check the file, then the kalmvue service's latest deploy. |
+| Kalmvue says "Coming soon" | The Client ID in `kalmvue/config.js` on `main` is still empty, or Render has not finished rebuilding. Check the file, then the kalmvue service's latest deploy. The static site must publish the `kalmvue` folder, not the repository root. |
 | "Error 400: origin_mismatch" or "redirect_uri_mismatch" | The address in the browser bar is not in Part 3's JavaScript origins. Add it exactly, with `https://`, and with no slash at the end. |
 | "Access blocked: app has not completed verification" | That Google account is not a test user. Add it in Part 3, or wait until Part 7 is approved. |
 | Sign-in popup never appears | Allow popups for the site. |
@@ -253,9 +253,10 @@ After approval, any Google user can sign in, and the "unverified app" warning go
 
 ## Run them on your own computer (optional)
 
-Kalmvue, from the repository folder:
+Kalmvue, from the `kalmvue` folder:
 
 ```bash
+cd kalmvue
 python3 -m http.server 8000
 ```
 

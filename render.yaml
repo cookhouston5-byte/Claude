@@ -1,9 +1,18 @@
-# FixFocus web service. Kalmvue is a separate static site and is not listed here.
-# Render cannot turn the existing FixFocus static site into a web service.
-# Follow SETUP.md and create the web service in the dashboard. Do not apply
-# this file as a Blueprint while a static site is still named "fixfocus".
+# Desired Render settings. The live services are not blueprint-synced.
+# Do not apply this file as a Blueprint. Set the Kalmvue static site by hand
+# or with the Render API. Leave the FixFocus web service as it is.
 
 services:
+  - type: web
+    name: kalmvue
+    runtime: static
+    branch: main
+    buildCommand: "echo Kalmvue files are already in kalmvue/"
+    staticPublishPath: ./kalmvue
+    headers:
+      - path: /manifest.webmanifest
+        name: Content-Type
+        value: application/manifest+json
   - type: web
     name: fixfocus
     runtime: node
