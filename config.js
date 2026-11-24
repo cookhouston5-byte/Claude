@@ -3,5 +3,5 @@
 // Leave the quotes empty until you have one. Visitors then see "Coming soon".
 // The steps are in SETUP.md at the root of this project.
 window.KALMVUE_CONFIG = {
-  clientId: "",
+  clientId: "333487176400-8ff5oaort7id0krruumsrsulknhtc5fo.apps.googleusercontent.com",
 };
