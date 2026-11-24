@@ -1,0 +1,23 @@
+// Run with: node test.js
+const assert = require("assert");
+const F = require("./filter.js");
+const ok = (q) => F.checkQuery(q).ok;
+assert(ok("leaky kitchen faucet"));
+assert(ok("cast iron seasoning"));
+assert(ok("iphone screen cracked"));
+assert(!ok("funny cat videos"));
+assert(!ok("minecraft let's play"));
+assert(!ok("taylor swift song"));
+assert(!ok("ok"));
+assert(!ok("https://youtube.com/watch?v=x"));
+assert.strictEqual(F.buildQuery("leaky faucet"), "how to fix leaky faucet");
+assert.strictEqual(F.buildQuery("How to replace a tire"), "How to replace a tire");
+assert.strictEqual(F.buildQuery("why won't my car start"), "why won't my car start");
+assert(F.isFixVideo({ title: "How to Fix a Leaky Faucet in 5 Minutes", description: "", durationSec: 300 }));
+assert(F.isFixVideo({ title: "Kitchen faucet cartridge", description: "Step by step repair guide", durationSec: 400 }));
+assert(!F.isFixVideo({ title: "Funniest plumbing fails compilation", description: "how to fix", durationSec: 600 }));
+assert(!F.isFixVideo({ title: "Fix it fast #shorts", description: "", durationSec: 40 }));
+assert(!F.isFixVideo({ title: "My day at the beach", description: "fun times", durationSec: 600 }));
+assert.strictEqual(F.parseDuration("PT1H2M3S"), 3723);
+assert.strictEqual(F.parseDuration("PT45S"), 45);
+console.log("All filter tests passed");

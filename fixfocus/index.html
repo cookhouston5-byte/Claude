@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>FixFocus</title>
+  <meta name="description" content="Only videos that help you fix things. No distractions.">
+  <meta name="theme-color" content="#111318">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./" id="homeLink">
+      <img src="icon.svg" alt="" width="28" height="28">
+      <span>FixFocus</span>
+    </a>
+    <div class="actions" id="actions" hidden>
+      <button id="menuBtn" class="btn ghost" type="button" aria-haspopup="true" aria-expanded="false" title="Settings">⋯</button>
+      <div id="menu" class="menu" hidden>
+        <button id="clearBtn" type="button">Clear history &amp; fixes</button>
+        <button id="changeKeyBtn" type="button">Change API key</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="app">
+    <!-- Setup: no API key yet -->
+    <section id="setupView" class="panel" hidden>
+      <h1>One-time setup</h1>
+      <p>FixFocus searches YouTube with its official API. Paste the <strong>YouTube Data API key</strong> you created in Google Cloud (see <code>SETUP.md</code>).</p>
+      <form id="setupForm">
+        <label for="keyInput">API key</label>
+        <input id="keyInput" type="text" autocomplete="off" spellcheck="false" placeholder="AIzaSy..." required>
+        <button class="btn primary" type="submit">Save</button>
+      </form>
+    </section>
+
+    <!-- Search -->
+    <section id="searchView" hidden>
+      <div class="hero" id="hero">
+        <h1>What needs fixing?</h1>
+        <p>Only repair and how-to videos. No homepage, no recommendations, no rabbit holes.</p>
+      </div>
+      <form id="searchForm" class="search" role="search">
+        <span class="prefix" aria-hidden="true">How to fix</span>
+        <input id="q" type="search" autocomplete="off" enterkeyhint="search"
+               placeholder="a leaky kitchen faucet" aria-label="What do you need to fix?" maxlength="120">
+        <button class="btn primary" type="submit">Search</button>
+      </form>
+      <div class="chips" id="categories" aria-label="Categories"></div>
+      <div class="recent" id="recentWrap" hidden>
+        <span class="label">Recent:</span>
+        <div class="chips" id="recent"></div>
+      </div>
+
+      <p id="notice" class="notice" hidden></p>
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+      <ul id="results" class="results"></ul>
+    </section>
+
+    <!-- Player -->
+    <section id="playerView" hidden>
+      <button id="backBtn" class="btn" type="button">← Back to results</button>
+      <div class="player" id="playerBox"></div>
+      <h2 id="playerTitle" class="ptitle"></h2>
+      <p id="playerSub" class="sub"></p>
+      <div class="pactions">
+        <button id="fixedBtn" class="btn primary" type="button">✓ I fixed it</button>
+        <a id="ytLink" class="btn ghost" target="_blank" rel="noopener">Open on YouTube</a>
+      </div>
+      <p class="fine">Playing inside FixFocus so YouTube can't pull you into recommendations.</p>
+    </section>
+
+    <p id="error" class="error" role="alert" hidden></p>
+  </main>
+
+  <footer class="footer">
+    Video data from <a href="https://www.youtube.com" target="_blank" rel="noopener">YouTube</a> ·
+    <a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener">YouTube Terms</a> ·
+    <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="filter.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
