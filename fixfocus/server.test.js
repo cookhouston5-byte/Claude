@@ -6,13 +6,13 @@ const { createApp } = require("./server");
 
 const SECRET = "TESTKEY-do-not-leak-1234567890";
 
-function video(id, title, description, duration) {
+function video(id, title, description, duration, channelTitle) {
   return {
     id,
     snippet: {
       title,
       description,
-      channelTitle: "Repair Channel",
+      channelTitle: channelTitle || "Repair Channel",
       publishedAt: "2024-06-01T12:00:00Z",
       thumbnails: { medium: { url: `https://i.ytimg.com/vi/${id}/mqdefault.jpg` } },
     },
@@ -32,6 +32,7 @@ function youtubeMock(calls) {
           { id: { videoId: "abcdefghijk" } },
           { id: { videoId: "shortvideoid" } },
           { id: { videoId: "funnyvideoid" } },
+          { id: { videoId: "lyricvideoid" } },
           { id: { videoId: "bad id" } },
         ],
       });
@@ -41,6 +42,7 @@ function youtubeMock(calls) {
         video("abcdefghijk", "How to fix a leaky faucet", "A repair guide", "PT5M12S"),
         video("shortvideoid", "Fix it fast #shorts", "how to fix", "PT20S"),
         video("funnyvideoid", "Funniest plumbing fails compilation", "how to fix", "PT4M"),
+        video("lyricvideoid", "I Can Fix Him (No Really I Can)", "", "PT3M30S", "Taylor Swift - Topic"),
       ],
     });
   };
@@ -116,6 +118,15 @@ describe("FixFocus server", () => {
     assert.equal(again.status, 200);
     assert.equal(again.body.videos.length, 1);
     assert.equal(calls.length, 2);
+  });
+
+  test("a query with no real word does not call YouTube", async () => {
+    const calls = [];
+    const port = await start({ apiKey: SECRET, fetchImpl: youtubeMock(calls) });
+    const result = await get(port, "/api/search?q=" + encodeURIComponent("%%%&&&"));
+    assert.equal(result.status, 400);
+    assert.match(result.body.message, /words/i);
+    assert.equal(calls.length, 0);
   });
 
   test("distraction searches are refused before YouTube is called", async () => {

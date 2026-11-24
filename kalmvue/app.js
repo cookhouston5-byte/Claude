@@ -1,20 +1,17 @@
 /* Kalmvue: only the latest videos from channels you subscribe to.
  *
  * Runs in the browser. Uses Google sign-in (read-only YouTube scope)
- * and the official YouTube Data API v3. Videos always open on YouTube itself,
- * so creators get their views and YouTube shows its ads as normal.
+ * and the official YouTube Data API v3. Videos play here in YouTube's
+ * privacy-enhanced player. Creators still get the view.
  * The OAuth Client ID comes from config.js. It is not a secret.
  */
 (() => {
   "use strict";
 
+  const Q = window.KalmQuota;
   const SCOPE = "https://www.googleapis.com/auth/youtube.readonly";
   const API = "https://www.googleapis.com/youtube/v3/";
   const VIDEOS_PER_CHANNEL = 8;
-  // Ask YouTube again at this age. Every refresh loads the subscription list
-  // from scratch, so a new channel or a new upload shows up. Thirty minutes
-  // keeps a tab that stays open inside the shared daily quota. Refresh does it sooner.
-  const STALE_AFTER_MS = 30 * 60e3;
   const CONCURRENCY = 6;
   const WATCHED_KEEP_DAYS = 365;
   const CHECKING = "Checking for new videos...";
@@ -33,13 +30,15 @@
   };
 
   const $ = (id) => document.getElementById(id);
-  const views = { soon: $("soonView"), signIn: $("signInView"), feed: $("feedView") };
+  const views = { soon: $("soonView"), signIn: $("signInView"), feed: $("feedView"), player: $("playerView") };
   const el = {
     actions: $("actions"), refreshBtn: $("refreshBtn"), menuBtn: $("menuBtn"), menu: $("menu"),
     signOutBtn: $("signOutBtn"), signInBtn: $("signInBtn"),
     hideWatched: $("hideWatched"), showShorts: $("showShorts"), status: $("status"),
     progress: $("progress"), progressBar: $("progressBar"),
     feed: $("feed"), empty: $("empty"), error: $("error"),
+    backBtn: $("backBtn"), playerBox: $("playerBox"), playerTitle: $("playerTitle"),
+    playerSub: $("playerSub"), ytLink: $("ytLink"),
   };
 
   const cfg = window.KALMVUE_CONFIG || {};
@@ -61,7 +60,8 @@
 
   function show(name) {
     for (const [k, v] of Object.entries(views)) v.hidden = k !== name;
-    el.actions.hidden = name !== "feed";
+    el.actions.hidden = name !== "feed" && name !== "player";
+    if (name !== "player") el.playerBox.replaceChildren();
   }
   function showError(msg) {
     el.error.textContent = msg || "";
@@ -182,6 +182,44 @@
     return channels;
   }
 
+  function mapPlaylistItems(items, channel) {
+    return (items || [])
+      .filter((it) => it.contentDetails?.videoPublishedAt && /^[A-Za-z0-9_-]{11}$/.test(it.contentDetails.videoId || ""))
+      .map((it) => ({
+        id: it.contentDetails.videoId,
+        title: it.snippet.title,
+        channelId: channel.id,
+        channelTitle: channel.title,
+        publishedAt: it.contentDetails.videoPublishedAt,
+        thumb: it.snippet.thumbnails?.medium?.url || it.snippet.thumbnails?.default?.url || "",
+      }));
+  }
+
+  // The full uploads playlist includes Shorts. Drop them by length and by #shorts.
+  async function withoutShorts(token, videos) {
+    const titled = videos.filter((video) => !Q.isShortVideo({ title: video.title, durationSec: null }));
+    if (!titled.length) return [];
+    try {
+      const data = await api(token, "videos", {
+        part: "contentDetails,snippet",
+        id: titled.map((video) => video.id).join(","),
+        maxResults: "50",
+      });
+      const byId = new Map((data.items || []).map((item) => [item.id, item]));
+      return titled.filter((video) => {
+        const item = byId.get(video.id);
+        return !Q.isShortVideo({
+          title: item?.snippet?.title || video.title,
+          description: item?.snippet?.description || "",
+          durationSec: Q.parseDuration(item?.contentDetails?.duration),
+        });
+      });
+    } catch (e) {
+      if (e instanceof ApiError && (e.status === 401 || e.reason === "quotaExceeded" || e.reason === "dailyLimitExceeded")) throw e;
+      return titled;
+    }
+  }
+
   async function fetchChannelVideos(token, channel, includeShorts) {
     const base = channel.id.slice(2);
     const lists = includeShorts ? ["UU" + base] : ["UULF" + base, "UU" + base];
@@ -190,16 +228,9 @@
         const data = await api(token, "playlistItems", {
           part: "snippet,contentDetails", playlistId, maxResults: String(VIDEOS_PER_CHANNEL),
         });
-        return (data.items || [])
-          .filter((it) => it.contentDetails?.videoPublishedAt)
-          .map((it) => ({
-            id: it.contentDetails.videoId,
-            title: it.snippet.title,
-            channelId: channel.id,
-            channelTitle: channel.title,
-            publishedAt: it.contentDetails.videoPublishedAt,
-            thumb: it.snippet.thumbnails?.medium?.url || it.snippet.thumbnails?.default?.url || "",
-          }));
+        let videos = mapPlaylistItems(data.items, channel);
+        if (!includeShorts && playlistId === "UU" + base) videos = await withoutShorts(token, videos);
+        return videos;
       } catch (e) {
         if (e instanceof ApiError && e.status === 404) continue;
         throw e;
@@ -239,11 +270,9 @@
     return e?.message || "Something went wrong. Please try again.";
   }
 
-  // Subscription checks are cheap. Full video reloads are not, so those wait
-  // until the list of channels changed, the feed is older than STALE_AFTER_MS,
-  // or the person pressed Refresh.
+  // Background checks are every 3 hours. Coming back to the tab re-reads
+  // subscriptions at most every 30 minutes. Refresh loads every channel now.
   let lastSubsCheck = 0;
-  const SUBS_RECHECK_MS = 2 * 60e3;
 
   function refresh({ interactive, videos }) {
     if (loading) return;
@@ -279,18 +308,16 @@
 
         const channelIds = channels.map((ch) => ch.id).sort();
         const existing = store.get(feedKey());
-        const sameChannels = existing
-          && Array.isArray(existing.channelIds)
-          && existing.channelIds.join(",") === channelIds.join(",");
-        const fresh = existing && Date.now() - existing.fetchedAt < STALE_AFTER_MS;
-        if (videos !== "always" && sameChannels && fresh) {
-          setStatus(statusText());
-          return;
-        }
+        const cached = existing?.byChannel || {};
+        const fetchIds = new Set(Q.channelsToRefresh(channels, cached, Date.now(), {
+          force: videos === "always",
+          windowMs: Q.VIDEO_REFRESH_MS,
+        }));
+        const needed = channels.filter((ch) => fetchIds.has(ch.id));
 
-        el.progress.hidden = channels.length === 0;
+        el.progress.hidden = needed.length === 0;
         el.progressBar.style.width = "0";
-        const perChannel = await pool(channels, CONCURRENCY,
+        const fetched = await pool(needed, CONCURRENCY,
           (ch) => fetchChannelVideos(token, ch, includeShorts).catch((e) => {
             if (e instanceof ApiError && (e.status === 401 || e.reason === "quotaExceeded" || e.reason === "dailyLimitExceeded")) throw e;
             console.warn("Skipping channel", ch.title, e);
@@ -298,8 +325,28 @@
           }),
           (done, total) => { el.progressBar.style.width = (100 * done / total) + "%"; });
 
-        const videoList = perChannel.flat().sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
-        const feed = { fetchedAt: Date.now(), channelCount: channels.length, channelIds, videos: videoList };
+        const fetchedAtNow = Date.now();
+        const byId = new Map(needed.map((ch, index) => [ch.id, fetched[index] || []]));
+        const byChannel = {};
+        const videoList = [];
+        for (const ch of channels) {
+          if (fetchIds.has(ch.id)) {
+            const list = byId.get(ch.id) || [];
+            byChannel[ch.id] = { fetchedAt: fetchedAtNow, latestVideoId: list[0]?.id || "", videos: list };
+          } else if (cached[ch.id]) {
+            byChannel[ch.id] = cached[ch.id];
+          }
+          videoList.push(...(byChannel[ch.id]?.videos || []));
+        }
+        videoList.sort((a, b) => String(b.publishedAt).localeCompare(String(a.publishedAt)));
+        const times = channels.map((ch) => byChannel[ch.id]?.fetchedAt).filter((t) => typeof t === "number");
+        const feed = {
+          fetchedAt: times.length ? Math.min(...times) : fetchedAtNow,
+          channelCount: channels.length,
+          channelIds,
+          byChannel,
+          videos: videoList,
+        };
         store.set(feedKey(), feed);
         if (prefs.showShorts === includeShorts) render(feed);
       } catch (e) {
@@ -371,12 +418,32 @@
     li.className = "video" + (watched[v.id] ? " watched" : "");
     li.dataset.id = v.id;
 
+    const watchUrl = "https://www.youtube.com/watch?v=" + encodeURIComponent(v.id);
     const a = document.createElement("a");
     a.className = "link";
-    a.href = "https://www.youtube.com/watch?v=" + encodeURIComponent(v.id);
-    a.target = "_blank";
+    a.href = watchUrl;
     a.rel = "noopener";
-    a.addEventListener("click", () => setWatched(v.id, true, li));
+    let held = null;
+    a.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0) return;
+      held = setTimeout(() => setWatched(v.id, true, li), 550);
+    });
+    const clearHeld = () => { if (held) { clearTimeout(held); held = null; } };
+    a.addEventListener("pointerup", clearHeld);
+    a.addEventListener("pointerleave", clearHeld);
+    a.addEventListener("pointercancel", clearHeld);
+    a.addEventListener("auxclick", (e) => {
+      if (e.button !== 1) return;
+      e.preventDefault();
+      setWatched(v.id, true, li);
+      window.open(watchUrl, "_blank", "noopener");
+    });
+    a.addEventListener("click", (e) => {
+      setWatched(v.id, true, li);
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+      e.preventDefault();
+      openPlayer(v);
+    });
 
     const img = document.createElement("img");
     img.className = "thumb";
@@ -416,8 +483,24 @@
   function setWatched(id, on, li) {
     if (on) watched[id] = Date.now(); else delete watched[id];
     store.set("watched", watched);
-    li.classList.toggle("watched", on);
-    if (on && prefs.hideWatched) setTimeout(() => render(), 400);
+    if (li) li.classList.toggle("watched", on);
+    if (on && prefs.hideWatched && views.player.hidden) setTimeout(() => render(), 400);
+  }
+
+  function openPlayer(v) {
+    const frame = document.createElement("iframe");
+    frame.title = v.title;
+    frame.allow = "accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen";
+    frame.allowFullscreen = true;
+    frame.referrerPolicy = "strict-origin-when-cross-origin";
+    frame.src = "https://www.youtube-nocookie.com/embed/" + encodeURIComponent(v.id) +
+      "?rel=0&modestbranding=1&playsinline=1&iv_load_policy=3&autoplay=1";
+    el.playerBox.replaceChildren(frame);
+    el.playerTitle.textContent = v.title;
+    el.playerSub.textContent = `${v.channelTitle} · ${timeAgo(v.publishedAt)}`;
+    el.ytLink.href = "https://www.youtube.com/watch?v=" + encodeURIComponent(v.id);
+    show("player");
+    window.scrollTo(0, 0);
   }
 
   el.signInBtn.addEventListener("click", () => {
@@ -450,7 +533,7 @@
     prefs.showShorts = el.showShorts.checked; store.set("prefs", prefs);
     render();
     const feed = store.get(feedKey());
-    if (!feed || Date.now() - feed.fetchedAt > STALE_AFTER_MS) refresh({ interactive: true, videos: "if-needed" });
+    if (!feed || Date.now() - feed.fetchedAt > Q.VIDEO_REFRESH_MS) refresh({ interactive: true, videos: "if-needed" });
   });
 
   el.menuBtn.addEventListener("click", (e) => {
@@ -481,10 +564,10 @@
   });
 
   function refreshInBackground() {
-    if (loading || views.feed.hidden || document.visibilityState !== "visible" || !validToken()) return;
+    if (loading || (views.feed.hidden && views.player.hidden) || document.visibilityState !== "visible" || !validToken()) return;
     const feed = store.get(feedKey());
-    const stale = !feed || Date.now() - feed.fetchedAt > STALE_AFTER_MS;
-    const subsDue = Date.now() - lastSubsCheck > SUBS_RECHECK_MS;
+    const stale = !feed || Date.now() - feed.fetchedAt > Q.VIDEO_REFRESH_MS;
+    const subsDue = Date.now() - lastSubsCheck > Q.SUBS_RECHECK_MS;
     if (stale || subsDue) refresh({ interactive: false, videos: "if-needed" });
   }
 
@@ -492,9 +575,12 @@
     if (loading || views.feed.hidden) return;
     setStatus(statusText());
     const feed = store.get(feedKey());
-    if (!feed || Date.now() - feed.fetchedAt > STALE_AFTER_MS) refreshInBackground();
+    if (!feed || Date.now() - feed.fetchedAt > Q.VIDEO_REFRESH_MS) refreshInBackground();
   }, 60e3);
-  document.addEventListener("visibilitychange", refreshInBackground);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") refreshInBackground();
+  });
+  el.backBtn.addEventListener("click", () => { show("feed"); render(); });
 
   async function start() {
     // The old page let a visitor save a Client ID in this browser. That is gone.
