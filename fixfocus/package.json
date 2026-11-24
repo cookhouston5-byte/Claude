@@ -1,0 +1,12 @@
+{
+  "name": "fixfocus",
+  "private": true,
+  "description": "FixFocus serves the site and a YouTube search proxy. The API key stays on the server.",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test.js && node --test server.test.js"
+  }
+}

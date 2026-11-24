@@ -1,0 +1,22 @@
+# FixFocus web service. Kalmvue is a separate static site and is not listed here.
+# Render cannot turn the existing FixFocus static site into a web service.
+# Follow SETUP.md and create the web service in the dashboard. Do not apply
+# this file as a Blueprint while a static site is still named "fixfocus".
+
+services:
+  - type: web
+    name: fixfocus
+    runtime: node
+    plan: free
+    region: oregon
+    branch: main
+    rootDir: fixfocus
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/status
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: YOUTUBE_API_KEY
+        sync: false

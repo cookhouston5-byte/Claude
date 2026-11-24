@@ -74,12 +74,20 @@ main { flex: 1; width: 100%; max-width: 860px; margin: 0 auto; padding: 16px; }
 }
 .panel h1 { margin: 0 0 8px; font-size: 26px; }
 .panel p { color: var(--muted); max-width: 520px; margin: 0 auto 18px; }
-#setupForm { display: flex; flex-direction: column; gap: 10px; max-width: 520px; margin: 0 auto; text-align: left; }
-#setupForm input {
-  font: inherit; font-size: 15px; padding: 10px 12px; border-radius: 8px;
-  border: 1px solid var(--border); background: var(--bg); color: var(--text); width: 100%;
-}
+.panel .fine { font-size: 13px; margin-top: 16px; }
 code { background: var(--bg); padding: 1px 5px; border-radius: 4px; }
+
+.icon { width: 18px; height: 18px; display: block; flex: none; }
+.icon-btn {
+  width: 38px; height: 38px; padding: 0;
+  display: inline-grid; place-items: center;
+}
+.btn.with-icon { display: inline-flex; align-items: center; gap: 6px; }
+.legal h1 { font-size: 28px; margin: 12px 0 4px; }
+.legal h2 { font-size: 18px; margin: 22px 0 8px; }
+.legal p, .legal li { max-width: 65ch; }
+.legal ul { margin: 8px 0 0; padding-left: 1.2em; }
+.legal .updated { color: var(--muted); font-size: 14px; margin-bottom: 8px; }
 
 .hero { text-align: center; margin: 28px 0 18px; }
 .hero h1 { margin: 0 0 6px; font-size: 30px; }
@@ -131,7 +139,11 @@ code { background: var(--bg); padding: 1px 5px; border-radius: 4px; }
 .meta { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .title { font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .sub { color: var(--muted); font-size: 14px; }
-.tag { color: var(--done); font-size: 13px; font-weight: 600; }
+.tag {
+  color: var(--done); font-size: 13px; font-weight: 600;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.tag .icon { width: 14px; height: 14px; }
 
 .player { margin-top: 12px; aspect-ratio: 16 / 9; background: #000; border-radius: var(--radius); overflow: hidden; }
 .player iframe { width: 100%; height: 100%; border: 0; display: block; }

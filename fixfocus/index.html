@@ -18,27 +18,25 @@
       <span>FixFocus</span>
     </a>
     <div class="actions" id="actions" hidden>
-      <button id="menuBtn" class="btn ghost" type="button" aria-haspopup="true" aria-expanded="false" title="Settings">⋯</button>
+      <button id="menuBtn" class="btn ghost icon-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Menu">
+        <svg class="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <circle cx="6" cy="12" r="1.5" fill="currentColor"/>
+          <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+          <circle cx="18" cy="12" r="1.5" fill="currentColor"/>
+        </svg>
+      </button>
       <div id="menu" class="menu" hidden>
-        <button id="clearBtn" type="button">Clear history &amp; fixes</button>
-        <button id="changeKeyBtn" type="button">Change API key</button>
+        <button id="clearBtn" type="button">Clear history and fixes</button>
       </div>
     </div>
   </header>
 
   <main id="app">
-    <!-- Setup: no API key yet -->
-    <section id="setupView" class="panel" hidden>
-      <h1>One-time setup</h1>
-      <p>FixFocus searches YouTube with its official API. Paste the <strong>YouTube Data API key</strong> you created in Google Cloud (see <code>SETUP.md</code>).</p>
-      <form id="setupForm">
-        <label for="keyInput">API key</label>
-        <input id="keyInput" type="text" autocomplete="off" spellcheck="false" placeholder="AIzaSy..." required>
-        <button class="btn primary" type="submit">Save</button>
-      </form>
+    <section id="unavailableView" class="panel" hidden>
+      <h1>Temporarily unavailable</h1>
+      <p>FixFocus is temporarily unavailable. Please check back soon.</p>
     </section>
 
-    <!-- Search -->
     <section id="searchView" hidden>
       <div class="hero" id="hero">
         <h1>What needs fixing?</h1>
@@ -61,14 +59,23 @@
       <ul id="results" class="results"></ul>
     </section>
 
-    <!-- Player -->
     <section id="playerView" hidden>
-      <button id="backBtn" class="btn" type="button">← Back to results</button>
+      <button id="backBtn" class="btn with-icon" type="button">
+        <svg class="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path d="M14.5 6.5 9 12l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Back to results
+      </button>
       <div class="player" id="playerBox"></div>
       <h2 id="playerTitle" class="ptitle"></h2>
       <p id="playerSub" class="sub"></p>
       <div class="pactions">
-        <button id="fixedBtn" class="btn primary" type="button">✓ I fixed it</button>
+        <button id="fixedBtn" class="btn primary with-icon" type="button">
+          <svg class="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <path d="M20 6 9 17 4 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span id="fixedLabel">I fixed it</span>
+        </button>
         <a id="ytLink" class="btn ghost" target="_blank" rel="noopener">Open on YouTube</a>
       </div>
       <p class="fine">Playing inside FixFocus so YouTube can't pull you into recommendations.</p>
@@ -78,12 +85,20 @@
   </main>
 
   <footer class="footer">
+    <a href="privacy.html">Privacy</a> ·
+    <a href="terms.html">Terms</a> ·
     Video data from <a href="https://www.youtube.com" target="_blank" rel="noopener">YouTube</a> ·
     <a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener">YouTube Terms</a> ·
     <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a>
   </footer>
 
-  <script src="config.js"></script>
+  <noscript>
+    <section class="panel">
+      <h1>JavaScript is required</h1>
+      <p>FixFocus needs JavaScript to search. Please enable it and reload the page.</p>
+    </section>
+  </noscript>
+
   <script src="filter.js"></script>
   <script src="app.js"></script>
 </body>
