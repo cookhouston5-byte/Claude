@@ -48,6 +48,8 @@ Why "None" for application restrictions: this key is used by the FixFocus server
 
 Do not paste this key into `config.js`, into GitHub, or into a screenshot you post anywhere. If it leaks, come back to this page, delete the key, create a new one, and update the Render variable in Part 5.
 
+A key was already committed in `fixfocus/config.js`, locked to the website `fixfocus.onrender.com`. That file is gone on purpose: the browser must never receive the key, and a website lock blocks the server. Delete that key in Google Cloud, create a new one with the settings above, and put the new key only in Render as `YOUTUBE_API_KEY`.
+
 ---
 
 ## Part 3. Set up Google sign-in (Kalmvue)
