@@ -1,6 +1,6 @@
 {
-  "name": "Lock-Tube",
-  "short_name": "Lock-Tube",
+  "name": "Kalmvue",
+  "short_name": "Kalmvue",
   "description": "Only the latest videos from the channels you subscribe to.",
   "start_url": "./",
   "scope": "./",
