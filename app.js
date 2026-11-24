@@ -1,50 +1,51 @@
 /* Kalmvue: only the latest videos from channels you subscribe to.
  *
- * Runs entirely in the browser. Uses Google sign-in (read-only YouTube scope)
+ * Runs in the browser. Uses Google sign-in (read-only YouTube scope)
  * and the official YouTube Data API v3. Videos always open on YouTube itself,
  * so creators get their views and YouTube shows its ads as normal.
+ * The OAuth Client ID comes from config.js. It is not a secret.
  */
 (() => {
   "use strict";
 
   const SCOPE = "https://www.googleapis.com/auth/youtube.readonly";
   const API = "https://www.googleapis.com/youtube/v3/";
-  const VIDEOS_PER_CHANNEL = 8;      // newest N uploads per channel
-  const STALE_AFTER_MS = 10 * 60e3;  // auto-refresh if feed is older than 10 min
+  const VIDEOS_PER_CHANNEL = 8;
+  // Ask YouTube again at this age. Every refresh loads the subscription list
+  // from scratch, so a new channel or a new upload shows up. Thirty minutes
+  // keeps a tab that stays open inside the shared daily quota. Refresh does it sooner.
+  const STALE_AFTER_MS = 30 * 60e3;
   const CONCURRENCY = 6;
   const WATCHED_KEEP_DAYS = 365;
+  const CHECKING = "Checking for new videos...";
 
-  // ---------- storage helpers (never throw) ----------
   const store = {
     get(key, fallback = null, area = localStorage) {
       try { const v = area.getItem("ff." + key); return v == null ? fallback : JSON.parse(v); }
       catch { return fallback; }
     },
     set(key, value, area = localStorage) {
-      try { area.setItem("ff." + key, JSON.stringify(value)); } catch { /* storage full / blocked */ }
+      try { area.setItem("ff." + key, JSON.stringify(value)); } catch { /* storage full or blocked */ }
     },
     del(key, area = localStorage) {
       try { area.removeItem("ff." + key); } catch { /* ignore */ }
     },
   };
 
-  // ---------- DOM ----------
   const $ = (id) => document.getElementById(id);
-  const views = { setup: $("setupView"), signIn: $("signInView"), feed: $("feedView") };
+  const views = { soon: $("soonView"), signIn: $("signInView"), feed: $("feedView") };
   const el = {
     actions: $("actions"), refreshBtn: $("refreshBtn"), menuBtn: $("menuBtn"), menu: $("menu"),
-    signOutBtn: $("signOutBtn"), changeClientBtn: $("changeClientBtn"),
-    setupForm: $("setupForm"), clientIdInput: $("clientIdInput"), signInBtn: $("signInBtn"),
+    signOutBtn: $("signOutBtn"), signInBtn: $("signInBtn"),
     hideWatched: $("hideWatched"), showShorts: $("showShorts"), status: $("status"),
     progress: $("progress"), progressBar: $("progressBar"),
     feed: $("feed"), empty: $("empty"), error: $("error"),
   };
 
-  // ---------- state ----------
   const cfg = window.KALMVUE_CONFIG || {};
-  let clientId = (cfg.clientId || "").trim() || store.get("clientId", "");
+  const clientId = String(cfg.clientId || "").trim();
   let tokenClient = null;
-  let pendingToken = null; // {resolve, reject} while the Google popup is open
+  let pendingToken = null;
   let loading = false;
 
   const prefs = Object.assign({ hideWatched: false, showShorts: false }, store.get("prefs", {}));
@@ -58,7 +59,6 @@
 
   const feedKey = () => "feed." + (prefs.showShorts ? "all" : "noShorts");
 
-  // ---------- views ----------
   function show(name) {
     for (const [k, v] of Object.entries(views)) v.hidden = k !== name;
     el.actions.hidden = name !== "feed";
@@ -68,15 +68,39 @@
     el.error.hidden = !msg;
   }
 
-  // ---------- Google sign-in (token flow, no server needed) ----------
-  function waitForGoogle(timeoutMs = 15000) {
+  function loadGoogle(timeoutMs = 15000) {
     return new Promise((resolve, reject) => {
-      const start = Date.now();
-      (function poll() {
-        if (window.google?.accounts?.oauth2) return resolve();
-        if (Date.now() - start > timeoutMs) return reject(new Error("Couldn't load Google sign-in. Check your connection or ad blocker, then reload."));
-        setTimeout(poll, 100);
-      })();
+      if (window.google?.accounts?.oauth2) return resolve();
+      const script = document.createElement("script");
+      script.src = "https://accounts.google.com/gsi/client";
+      script.async = true;
+      let settled = false;
+      const timer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        reject(new Error("Google sign-in didn't load. Check your connection, then reload the page."));
+      }, timeoutMs);
+      script.onload = () => {
+        const start = Date.now();
+        (function poll() {
+          if (settled) return;
+          if (window.google?.accounts?.oauth2) {
+            settled = true;
+            clearTimeout(timer);
+            resolve();
+            return;
+          }
+          if (Date.now() - start > timeoutMs) return;
+          setTimeout(poll, 50);
+        })();
+      };
+      script.onerror = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        reject(new Error("Google sign-in didn't load. Check your connection, then reload the page."));
+      };
+      document.head.appendChild(script);
     });
   }
 
@@ -86,7 +110,14 @@
       scope: SCOPE,
       callback: (resp) => {
         const p = pendingToken; pendingToken = null;
-        if (resp.error) { p?.reject(new Error(resp.error_description || resp.error)); return; }
+        if (resp.error) {
+          console.error("Google sign-in", resp.error, resp.error_description || "");
+          const msg = resp.error === "access_denied"
+            ? "Sign-in was cancelled, or this Google account isn't allowed to use Kalmvue yet."
+            : "Sign-in didn't finish. Please try again.";
+          p?.reject(new Error(msg));
+          return;
+        }
         const token = { access_token: resp.access_token, expiresAt: Date.now() + (Number(resp.expires_in) - 60) * 1000 };
         store.set("token", token, sessionStorage);
         store.set("signedIn", true);
@@ -95,8 +126,8 @@
       error_callback: (err) => {
         const p = pendingToken; pendingToken = null;
         const msg = err?.type === "popup_closed" ? "Sign-in window was closed."
-          : err?.type === "popup_failed_to_open" ? "Sign-in popup was blocked. Allow popups for this site and try again."
-          : "Sign-in failed.";
+          : err?.type === "popup_failed_to_open" ? "The sign-in popup was blocked. Allow popups for this site and try again."
+          : "Sign-in didn't finish. Please try again.";
         p?.reject(new Error(msg));
       },
     });
@@ -107,7 +138,6 @@
     return t && t.expiresAt > Date.now() ? t.access_token : null;
   }
 
-  // Must be called directly from a click handler (before any await) so the popup isn't blocked.
   function getToken({ interactive }) {
     const t = validToken();
     if (t) return Promise.resolve(t);
@@ -119,7 +149,6 @@
     });
   }
 
-  // ---------- YouTube Data API ----------
   class ApiError extends Error {
     constructor(status, reason, message) { super(message); this.status = status; this.reason = reason; }
   }
@@ -153,8 +182,6 @@
     return channels;
   }
 
-  // Each channel has an "uploads" playlist: channel ID "UCxxxx" -> playlist "UUxxxx".
-  // YouTube also keeps "UULFxxxx", the same uploads minus Shorts.
   async function fetchChannelVideos(token, channel, includeShorts) {
     const base = channel.id.slice(2);
     const lists = includeShorts ? ["UU" + base] : ["UULF" + base, "UU" + base];
@@ -164,7 +191,7 @@
           part: "snippet,contentDetails", playlistId, maxResults: String(VIDEOS_PER_CHANNEL),
         });
         return (data.items || [])
-          .filter((it) => it.contentDetails?.videoPublishedAt) // drops private/deleted videos
+          .filter((it) => it.contentDetails?.videoPublishedAt)
           .map((it) => ({
             id: it.contentDetails.videoId,
             title: it.snippet.title,
@@ -174,7 +201,7 @@
             thumb: it.snippet.thumbnails?.medium?.url || it.snippet.thumbnails?.default?.url || "",
           }));
       } catch (e) {
-        if (e instanceof ApiError && e.status === 404) continue; // playlist missing; try next / skip
+        if (e instanceof ApiError && e.status === 404) continue;
         throw e;
       }
     }
@@ -197,30 +224,43 @@
 
   function friendlyError(e) {
     if (e instanceof ApiError) {
+      console.error("YouTube API", e.status, e.reason || "", e.message || "");
       if (e.reason === "quotaExceeded" || e.reason === "dailyLimitExceeded")
-        return "YouTube's daily API limit for this app was reached. It resets at midnight Pacific time.";
-      if (e.reason === "accessNotConfigured" || e.reason === "SERVICE_DISABLED")
-        return "The YouTube Data API v3 isn't enabled in your Google Cloud project yet. See step 2 in SETUP.md.";
+        return "YouTube's daily limit for Kalmvue was reached. It resets at midnight Pacific time. Videos already loaded stay on the page.";
+      if (e.status === 401)
+        return "Your Google sign-in expired. Tap Refresh to sign in again.";
       if (e.reason === "subscriptionForbidden")
-        return "Your subscriptions are private to apps. Check your YouTube privacy settings.";
-      return "YouTube error: " + e.message;
+        return "YouTube wouldn't share your subscriptions. Check that you're signed in with the right Google account, then try again.";
+      return "Kalmvue couldn't refresh your videos. Please try again in a few minutes.";
     }
-    return e?.message || String(e);
+    console.error(e);
+    if (/failed to fetch|networkerror|load failed/i.test(e?.message || ""))
+      return "Kalmvue couldn't reach YouTube. Check your connection and try again.";
+    return e?.message || "Something went wrong. Please try again.";
   }
 
-  // ---------- refresh ----------
-  function refresh({ interactive }) {
+  // Subscription checks are cheap. Full video reloads are not, so those wait
+  // until the list of channels changed, the feed is older than STALE_AFTER_MS,
+  // or the person pressed Refresh.
+  let lastSubsCheck = 0;
+  const SUBS_RECHECK_MS = 2 * 60e3;
+
+  function refresh({ interactive, videos }) {
     if (loading) return;
-    const tokenPromise = getToken({ interactive }); // synchronous popup call happens here
+    const tokenPromise = getToken({ interactive });
     loading = true;
     el.refreshBtn.disabled = true;
     showError("");
-    setStatus("Checking for new videos…");
+    setStatus(CHECKING);
 
     (async () => {
       try {
         let token = await tokenPromise;
-        if (!token) { setStatus(statusText()); return; }
+        if (!token) {
+          if (interactive) showError("Google sign-in didn't load. Check your connection, then reload the page.");
+          setStatus(statusText());
+          return;
+        }
         const includeShorts = prefs.showShorts;
         let channels;
         try {
@@ -228,24 +268,38 @@
         } catch (e) {
           if (e instanceof ApiError && e.status === 401) {
             store.del("token", sessionStorage);
-            setStatus("Session expired. Tap Refresh to sign in again.");
+            const msg = "Your Google sign-in expired. Tap Refresh to sign in again.";
+            setStatus(msg);
+            showError(msg);
             return;
           }
           throw e;
+        }
+        lastSubsCheck = Date.now();
+
+        const channelIds = channels.map((ch) => ch.id).sort();
+        const existing = store.get(feedKey());
+        const sameChannels = existing
+          && Array.isArray(existing.channelIds)
+          && existing.channelIds.join(",") === channelIds.join(",");
+        const fresh = existing && Date.now() - existing.fetchedAt < STALE_AFTER_MS;
+        if (videos !== "always" && sameChannels && fresh) {
+          setStatus(statusText());
+          return;
         }
 
         el.progress.hidden = channels.length === 0;
         el.progressBar.style.width = "0";
         const perChannel = await pool(channels, CONCURRENCY,
           (ch) => fetchChannelVideos(token, ch, includeShorts).catch((e) => {
-            if (e instanceof ApiError && (e.status === 401 || e.reason === "quotaExceeded")) throw e;
+            if (e instanceof ApiError && (e.status === 401 || e.reason === "quotaExceeded" || e.reason === "dailyLimitExceeded")) throw e;
             console.warn("Skipping channel", ch.title, e);
             return [];
           }),
           (done, total) => { el.progressBar.style.width = (100 * done / total) + "%"; });
 
-        const videos = perChannel.flat().sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
-        const feed = { fetchedAt: Date.now(), channelCount: channels.length, videos };
+        const videoList = perChannel.flat().sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
+        const feed = { fetchedAt: Date.now(), channelCount: channels.length, channelIds, videos: videoList };
         store.set(feedKey(), feed);
         if (prefs.showShorts === includeShorts) render(feed);
       } catch (e) {
@@ -255,12 +309,11 @@
         loading = false;
         el.refreshBtn.disabled = false;
         el.progress.hidden = true;
-        if (el.status.textContent === "Checking for new videos…") setStatus(statusText());
+        if (el.status.textContent === CHECKING) setStatus(statusText());
       }
     })();
   }
 
-  // ---------- rendering ----------
   function timeAgo(iso) {
     const s = (Date.now() - new Date(iso).getTime()) / 1000;
     const units = [["year", 31536e3], ["month", 2592e3], ["week", 604800], ["day", 86400], ["hour", 3600], ["minute", 60]];
@@ -274,13 +327,14 @@
   function statusText() {
     const feed = store.get(feedKey());
     if (!feed) return "";
-    return `${feed.channelCount} channels · updated ${timeAgo(new Date(feed.fetchedAt).toISOString())}`;
+    const base = `${feed.channelCount} channels · updated ${timeAgo(new Date(feed.fetchedAt).toISOString())}`;
+    return validToken() ? base : base + " · Tap Refresh for new videos";
   }
   function setStatus(text) { el.status.textContent = text; }
 
   function render(feed = store.get(feedKey())) {
     el.feed.replaceChildren();
-    if (!feed) { el.empty.hidden = true; setStatus(loading ? "Checking for new videos…" : ""); return; }
+    if (!feed) { el.empty.hidden = true; setStatus(loading ? CHECKING : ""); return; }
 
     const list = prefs.hideWatched ? feed.videos.filter((v) => !watched[v.id]) : feed.videos;
     const frag = document.createDocumentFragment();
@@ -289,9 +343,27 @@
 
     el.empty.hidden = list.length > 0;
     el.empty.textContent = feed.videos.length === 0
-      ? (feed.channelCount === 0 ? "You're not subscribed to any channels yet. Subscribe on YouTube, then tap Refresh." : "No videos found.")
-      : "All caught up. You've watched everything here. 🎉";
+      ? (feed.channelCount === 0
+        ? "You're not subscribed to any channels yet. Subscribe on YouTube, then tap Refresh."
+        : "No recent videos showed up. Tap Refresh to try again.")
+      : "All caught up. You've watched everything in this list.";
     if (!loading) setStatus(statusText());
+  }
+
+  function checkIcon() {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("class", "icon");
+    svg.setAttribute("aria-hidden", "true");
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", "M20 6 9 17 4 12");
+    path.setAttribute("fill", "none");
+    path.setAttribute("stroke", "currentColor");
+    path.setAttribute("stroke-width", "2.2");
+    path.setAttribute("stroke-linecap", "round");
+    path.setAttribute("stroke-linejoin", "round");
+    svg.appendChild(path);
+    return svg;
   }
 
   function videoRow(v) {
@@ -327,7 +399,7 @@
     const check = document.createElement("button");
     check.type = "button";
     check.className = "check";
-    check.textContent = "✓";
+    check.appendChild(checkIcon());
     const label = () => (watched[v.id] ? "Mark as not watched" : "Mark as watched");
     check.title = label();
     check.setAttribute("aria-label", label());
@@ -345,32 +417,29 @@
     if (on) watched[id] = Date.now(); else delete watched[id];
     store.set("watched", watched);
     li.classList.toggle("watched", on);
-    if (on && prefs.hideWatched) {
-      // Let the click open YouTube first, then remove the row.
-      setTimeout(() => render(), 400);
-    }
+    if (on && prefs.hideWatched) setTimeout(() => render(), 400);
   }
-
-  // ---------- events ----------
-  el.setupForm.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const v = el.clientIdInput.value.trim();
-    if (!/\.apps\.googleusercontent\.com$/.test(v)) {
-      showError("That doesn't look like a Client ID. It should end in .apps.googleusercontent.com");
-      return;
-    }
-    store.set("clientId", v);
-    location.reload();
-  });
 
   el.signInBtn.addEventListener("click", () => {
     showError("");
+    if (!tokenClient) {
+      showError("Google sign-in didn't load. Check your connection, then reload the page.");
+      return;
+    }
     getToken({ interactive: true })
-      .then(() => { show("feed"); render(); refresh({ interactive: false }); })
+      .then((token) => {
+        if (!token) {
+          showError("Google sign-in didn't load. Check your connection, then reload the page.");
+          return;
+        }
+        show("feed");
+        render();
+        refresh({ interactive: false, videos: "always" });
+      })
       .catch((e) => showError(e.message));
   });
 
-  el.refreshBtn.addEventListener("click", () => refresh({ interactive: true }));
+  el.refreshBtn.addEventListener("click", () => refresh({ interactive: true, videos: "always" }));
 
   el.hideWatched.checked = prefs.hideWatched;
   el.showShorts.checked = prefs.showShorts;
@@ -381,7 +450,7 @@
     prefs.showShorts = el.showShorts.checked; store.set("prefs", prefs);
     render();
     const feed = store.get(feedKey());
-    if (!feed || Date.now() - feed.fetchedAt > STALE_AFTER_MS) refresh({ interactive: true });
+    if (!feed || Date.now() - feed.fetchedAt > STALE_AFTER_MS) refresh({ interactive: true, videos: "if-needed" });
   });
 
   el.menuBtn.addEventListener("click", (e) => {
@@ -398,43 +467,60 @@
     store.del("signedIn");
     store.del("feed.all");
     store.del("feed.noShorts");
+    store.del("watched");
+    store.del("prefs");
+    store.del("clientId");
+    watched = {};
+    prefs.hideWatched = false;
+    prefs.showShorts = false;
+    el.hideWatched.checked = false;
+    el.showShorts.checked = false;
     el.feed.replaceChildren();
+    showError("");
     show("signIn");
   });
 
-  el.changeClientBtn.addEventListener("click", () => {
-    if (cfg.clientId) { showError("The Client ID is set in config.js. Edit that file to change it."); return; }
-    store.del("clientId");
-    location.reload();
-  });
-
-  // Refresh the "updated X ago" text, and auto-refresh when you come back to the tab.
-  setInterval(() => { if (!loading && !views.feed.hidden) setStatus(statusText()); }, 60e3);
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState !== "visible" || views.feed.hidden) return;
+  function refreshInBackground() {
+    if (loading || views.feed.hidden || document.visibilityState !== "visible" || !validToken()) return;
     const feed = store.get(feedKey());
-    if (validToken() && (!feed || Date.now() - feed.fetchedAt > STALE_AFTER_MS)) refresh({ interactive: false });
-  });
+    const stale = !feed || Date.now() - feed.fetchedAt > STALE_AFTER_MS;
+    const subsDue = Date.now() - lastSubsCheck > SUBS_RECHECK_MS;
+    if (stale || subsDue) refresh({ interactive: false, videos: "if-needed" });
+  }
 
-  // ---------- start ----------
+  setInterval(() => {
+    if (loading || views.feed.hidden) return;
+    setStatus(statusText());
+    const feed = store.get(feedKey());
+    if (!feed || Date.now() - feed.fetchedAt > STALE_AFTER_MS) refreshInBackground();
+  }, 60e3);
+  document.addEventListener("visibilitychange", refreshInBackground);
+
   async function start() {
-    if (!clientId) { show("setup"); return; }
+    // The old page let a visitor save a Client ID in this browser. That is gone.
+    store.del("clientId");
+    if (!clientId) { show("soon"); return; }
+
+    const signedIn = store.get("signedIn", false);
+    if (signedIn) {
+      show("feed");
+      render();
+    } else {
+      show("signIn");
+    }
+
     try {
-      await waitForGoogle();
+      await loadGoogle();
       initTokenClient();
     } catch (e) {
       showError(e.message);
+      return;
     }
-    if (!store.get("signedIn", false)) { show("signIn"); return; }
 
-    show("feed");
-    render();
+    if (!signedIn) return;
     const feed = store.get(feedKey());
-    if (validToken()) {
-      if (!feed || Date.now() - feed.fetchedAt > STALE_AFTER_MS) refresh({ interactive: false });
-    } else {
-      setStatus((feed ? statusText() + " · " : "") + "tap Refresh for new videos");
-    }
+    if (validToken()) refreshInBackground();
+    else if (feed) setStatus(statusText());
   }
 
   start();
