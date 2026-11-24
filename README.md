@@ -1,9 +1,9 @@
-# Lock-Tube
+# Kalmvue
 
-YouTube, minus the distractions. Lock-Tube shows **only the newest videos from the channels you subscribe to**. There's no homepage, no recommendations and no Shorts (unless you turn them on).
+YouTube, minus the distractions. Kalmvue shows **only the newest videos from the channels you subscribe to**. There's no homepage, no recommendations and no Shorts (unless you turn them on).
 
 - **Auto-syncs your subscriptions.** Each refresh pulls your current subscription list from YouTube, so a channel you subscribe to on YouTube shows up here automatically.
-- **Videos open on YouTube.** Creators get their views and YouTube shows its normal ads. Lock-Tube never downloads or re-hosts anything.
+- **Videos open on YouTube.** Creators get their views and YouTube shows its normal ads. Kalmvue never downloads or re-hosts anything.
 - **✓ Watched checkmarks.** Opening a video marks it watched. Tap the circle to mark or unmark one yourself. Turn on "Hide watched" to clear finished videos from the list.
 - **Shorts hidden by default**, with a toggle to show them.
 - **Works on phone and computer.** On a phone, use "Add to Home Screen" and it opens like an app.
@@ -11,7 +11,7 @@ YouTube, minus the distractions. Lock-Tube shows **only the newest videos from t
 
 ## Getting it running
 
-Live at **https://lock-tube.onrender.com**. To finish connecting Google sign-in, see **[SETUP.md](SETUP.md)**. It takes about 10 minutes and is free.
+Live at **https://kalmvue.onrender.com** (soon **kalmvue.com**). To finish connecting Google sign-in, see **[SETUP.md](SETUP.md)**. It takes about 10 minutes and is free.
 
 ## Files
 
