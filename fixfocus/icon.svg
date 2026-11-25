@@ -1,28 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <defs>
-    <linearGradient id="ffg" x1="10" y1="6" x2="54" y2="60">
-      <stop stop-color="#FF8A3D"/>
-      <stop offset="1" stop-color="#F2551D"/>
-    </linearGradient>
-    <clipPath id="ffright">
-      <rect x="32" y="0" width="32" height="64"/>
-    </clipPath>
-  </defs>
-  <circle cx="32" cy="32" r="30" fill="url(#ffg)"/>
-  <g clip-path="url(#ffright)" fill="#1F2A44">
-    <g transform="translate(32 32)">
-      <rect x="-3.2" y="-30" width="6.4" height="12" rx="1.2"/>
-      <rect x="-3.2" y="-30" width="6.4" height="12" rx="1.2" transform="rotate(28)"/>
-      <rect x="-3.2" y="-30" width="6.4" height="12" rx="1.2" transform="rotate(56)"/>
-      <rect x="-3.2" y="-30" width="6.4" height="12" rx="1.2" transform="rotate(84)"/>
-      <rect x="-3.2" y="-30" width="6.4" height="12" rx="1.2" transform="rotate(112)"/>
-      <rect x="-3.2" y="-30" width="6.4" height="12" rx="1.2" transform="rotate(140)"/>
-      <rect x="-3.2" y="-30" width="6.4" height="12" rx="1.2" transform="rotate(168)"/>
-    </g>
-    <circle cx="32" cy="32" r="20"/>
-    <circle cx="32" cy="32" r="12.5" fill="url(#ffg)"/>
-  </g>
-  <path d="M27.5 23.5v17l14-8.5z" fill="#fff"/>
-  <path d="M16 49.5c5.2-5.4 8.4-7.2 12.2-11.2" fill="none" stroke="#1F2A44" stroke-width="3.4" stroke-linecap="round"/>
-  <path d="M13.2 47.2l2.4-4.6 4.8 2.4-2.2 4.4a2.6 2.6 0 0 1-5 .0z" fill="#1F2A44"/>
+  <path d="M 35.13 51.75 A 20 20 0 1 1 35.13 12.25" fill="none" stroke="#F25C1F" stroke-width="12" stroke-linecap="butt"/>
+  <path d="M 35.13 12.25 A 20 20 0 0 1 35.13 51.75" fill="none" stroke="#1E2A44" stroke-width="12" stroke-linecap="butt"/>
+  <rect x="-4" y="-5.2" width="8" height="10" rx="2" fill="#1E2A44" transform="translate(43.24 8.11) rotate(205.2)"/>
+  <rect x="-4" y="-5.2" width="8" height="10" rx="2" fill="#1E2A44" transform="translate(54.29 17.85) rotate(237.6)"/>
+  <rect x="-4" y="-5.2" width="8" height="10" rx="2" fill="#1E2A44" transform="translate(58.4 32) rotate(270)"/>
+  <rect x="-4" y="-5.2" width="8" height="10" rx="2" fill="#1E2A44" transform="translate(54.29 46.15) rotate(302.4)"/>
+  <rect x="-4" y="-5.2" width="8" height="10" rx="2" fill="#1E2A44" transform="translate(43.24 55.89) rotate(334.8)"/>
+  <path d="M26.9 24.5 L26.9 39.5 L41.2 32 Z" fill="#F25C1F" stroke="#F25C1F" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M13.62 50.38 L6.9 57.1" fill="none" stroke="#1E2A44" stroke-width="5.4" stroke-linecap="round"/>
 </svg>

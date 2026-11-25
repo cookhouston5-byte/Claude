@@ -1,20 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
-    <linearGradient id="kvg" x1="8" y1="4" x2="56" y2="62">
-      <stop stop-color="#1E8C8C"/>
-      <stop offset="1" stop-color="#0F4C5C"/>
+    <linearGradient id="kvTeal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2A9D8F"/>
+      <stop offset="1" stop-color="#0E4B5A"/>
     </linearGradient>
+    <clipPath id="kvClip"><circle cx="32" cy="32" r="30"/></clipPath>
   </defs>
-  <circle cx="32" cy="32" r="30" fill="url(#kvg)"/>
-  <g fill="none" stroke="#D9F6F3" stroke-width="2.1" stroke-linecap="round">
-    <path d="M32 13c7 3.5 11 8 9.5 14.5"/>
-    <path d="M46 20c-1 7-6 11-13 11"/>
-    <path d="M18.5 21c5 1.5 9 2 13.5 6.5"/>
-    <path d="M24 16c3 5 4 9 2.5 14"/>
+  <circle cx="32" cy="32" r="30" fill="url(#kvTeal)"/>
+  <g clip-path="url(#kvClip)" fill="none" stroke-linecap="round">
+    <path d="M0 46.5 L1 46.75 L2 47.01 L3 47.25 L4 47.49 L5 47.73 L6 47.94 L7 48.15 L8 48.34 L9 48.51 L10 48.66 L11 48.79 L12 48.9 L13 48.99 L14 49.05 L15 49.09 L16 49.1 L17 49.09 L18 49.05 L19 48.99 L20 48.9 L21 48.79 L22 48.66 L23 48.51 L24 48.34 L25 48.15 L26 47.94 L27 47.73 L28 47.49 L29 47.25 L30 47.01 L31 46.75 L32 46.5 L33 46.25 L34 45.99 L35 45.75 L36 45.51 L37 45.27 L38 45.06 L39 44.85 L40 44.66 L41 44.49 L42 44.34 L43 44.21 L44 44.1 L45 44.01 L46 43.95 L47 43.91 L48 43.9 L49 43.91 L50 43.95 L51 44.01 L52 44.1 L53 44.21 L54 44.34 L55 44.49 L56 44.66 L57 44.85 L58 45.06 L59 45.27 L60 45.51 L61 45.75 L62 45.99 L63 46.25 L64 46.5" stroke="#F4FFFD" stroke-width="4.8" stroke-opacity="0.40"/>
+    <path d="M0 52.2 L1 52.45 L2 52.71 L3 52.95 L4 53.19 L5 53.43 L6 53.64 L7 53.85 L8 54.04 L9 54.21 L10 54.36 L11 54.49 L12 54.6 L13 54.69 L14 54.75 L15 54.79 L16 54.8 L17 54.79 L18 54.75 L19 54.69 L20 54.6 L21 54.49 L22 54.36 L23 54.21 L24 54.04 L25 53.85 L26 53.64 L27 53.43 L28 53.19 L29 52.95 L30 52.71 L31 52.45 L32 52.2 L33 51.95 L34 51.69 L35 51.45 L36 51.21 L37 50.97 L38 50.76 L39 50.55 L40 50.36 L41 50.19 L42 50.04 L43 49.91 L44 49.8 L45 49.71 L46 49.65 L47 49.61 L48 49.6 L49 49.61 L50 49.65 L51 49.71 L52 49.8 L53 49.91 L54 50.04 L55 50.19 L56 50.36 L57 50.55 L58 50.76 L59 50.97 L60 51.21 L61 51.45 L62 51.69 L63 51.95 L64 52.2" stroke="#ffffff" stroke-width="4.8" stroke-opacity="0.30"/>
+    <path d="M0 57.9 L1 58.15 L2 58.41 L3 58.65 L4 58.89 L5 59.13 L6 59.34 L7 59.55 L8 59.74 L9 59.91 L10 60.06 L11 60.19 L12 60.3 L13 60.39 L14 60.45 L15 60.49 L16 60.5 L17 60.49 L18 60.45 L19 60.39 L20 60.3 L21 60.19 L22 60.06 L23 59.91 L24 59.74 L25 59.55 L26 59.34 L27 59.13 L28 58.89 L29 58.65 L30 58.41 L31 58.15 L32 57.9 L33 57.65 L34 57.39 L35 57.15 L36 56.91 L37 56.67 L38 56.46 L39 56.25 L40 56.06 L41 55.89 L42 55.74 L43 55.61 L44 55.5 L45 55.41 L46 55.35 L47 55.31 L48 55.3 L49 55.31 L50 55.35 L51 55.41 L52 55.5 L53 55.61 L54 55.74 L55 55.89 L56 56.06 L57 56.25 L58 56.46 L59 56.67 L60 56.91 L61 57.15 L62 57.39 L63 57.65 L64 57.9" stroke="#ffffff" stroke-width="4.8" stroke-opacity="0.20"/>
   </g>
-  <g fill="none" stroke-linecap="round">
-    <path d="M8 42c7 5 11-5 18 0s11 5 18 0 11-5 12 0" stroke="#B7EBE6" stroke-width="2.2"/>
-    <path d="M10 49c6 3.4 10-3.4 16 0s10 3.4 16 0 10-3.4 12 0" stroke="#F3FFFD" stroke-width="1.7" opacity="0.9"/>
-  </g>
-  <path d="M28 25.5v13l11-6.5z" fill="#F2A33A"/>
+  <path d="M 26.8 17.72 A 15.2 15.2 0 0 1 37.2 17.72" fill="none" stroke="#ffffff" stroke-opacity="0.34" stroke-width="3.8" stroke-linecap="round"/>
+  <path d="M 41.77 20.36 A 15.2 15.2 0 0 1 46.97 29.36" fill="none" stroke="#ffffff" stroke-opacity="0.34" stroke-width="3.8" stroke-linecap="round"/>
+  <path d="M 46.97 34.64 A 15.2 15.2 0 0 1 41.77 43.64" fill="none" stroke="#ffffff" stroke-opacity="0.34" stroke-width="3.8" stroke-linecap="round"/>
+  <path d="M 37.2 46.28 A 15.2 15.2 0 0 1 26.8 46.28" fill="none" stroke="#ffffff" stroke-opacity="0.34" stroke-width="3.8" stroke-linecap="round"/>
+  <path d="M 22.23 43.64 A 15.2 15.2 0 0 1 17.03 34.64" fill="none" stroke="#ffffff" stroke-opacity="0.34" stroke-width="3.8" stroke-linecap="round"/>
+  <path d="M 17.03 29.36 A 15.2 15.2 0 0 1 22.23 20.36" fill="none" stroke="#ffffff" stroke-opacity="0.34" stroke-width="3.8" stroke-linecap="round"/>
+  <path d="M27.2 25.2 L27.2 38.8 L40.6 32 Z" fill="#F4A63A" stroke="#F4A63A" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
 </svg>
