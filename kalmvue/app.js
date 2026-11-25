@@ -37,6 +37,10 @@
     hideWatched: $("hideWatched"), showShorts: $("showShorts"), status: $("status"),
     progress: $("progress"), progressBar: $("progressBar"),
     feed: $("feed"), empty: $("empty"), error: $("error"),
+    heroSlot: $("heroSlot"), feedHeading: $("feedHeading"),
+    creatorList: $("creatorList"), creatorCount: $("creatorCount"), moreCreators: $("moreCreators"),
+    sidebar: $("sidebar"), sidebarOpen: $("sidebarOpen"), sidebarClose: $("sidebarClose"),
+    sidebarBackdrop: $("sidebarBackdrop"), signOutSide: $("signOutSide"),
     listViewBtn: $("listViewBtn"), gridViewBtn: $("gridViewBtn"),
     backBtn: $("backBtn"), playerBox: $("playerBox"), playerTitle: $("playerTitle"),
     playerSub: $("playerSub"), ytLink: $("ytLink"),
@@ -51,6 +55,8 @@
   const prefs = Object.assign({ hideWatched: false, showShorts: false }, store.get("prefs", {}));
   let watched = pruneWatched(store.get("watched", {}));
   let viewMode = window.ViewMode.normalizeView(store.get("viewMode", "list"));
+  let creatorFilter = "";
+  let creatorsExpanded = false;
 
   function applyView(next) {
     viewMode = window.ViewMode.normalizeView(next);
@@ -59,6 +65,7 @@
     document.body.classList.toggle("view-grid", viewMode === "grid");
     el.listViewBtn.setAttribute("aria-pressed", String(viewMode === "list"));
     el.gridViewBtn.setAttribute("aria-pressed", String(viewMode === "grid"));
+    if (views.feed && !views.feed.hidden) render();
   }
 
   function pruneWatched(w) {
@@ -186,7 +193,12 @@
         ...(pageToken && { pageToken }),
       });
       for (const item of data.items || []) {
-        channels.push({ id: item.snippet.resourceId.channelId, title: item.snippet.title });
+        const thumbs = item.snippet.thumbnails || {};
+        channels.push({
+          id: item.snippet.resourceId.channelId,
+          title: item.snippet.title,
+          thumb: thumbs.default?.url || thumbs.medium?.url || "",
+        });
       }
       pageToken = data.nextPageToken || "";
     } while (pageToken);
@@ -200,8 +212,9 @@
         id: it.contentDetails.videoId,
         title: it.snippet.title,
         channelId: channel.id,
-        channelTitle: channel.title,
-        publishedAt: it.contentDetails.videoPublishedAt,
+            channelTitle: channel.title,
+            channelThumb: channel.thumb || "",
+            publishedAt: it.contentDetails.videoPublishedAt,
         thumb: it.snippet.thumbnails?.medium?.url || it.snippet.thumbnails?.default?.url || "",
       }));
   }
@@ -394,10 +407,20 @@
     el.feed.replaceChildren();
     if (!feed) { el.empty.hidden = true; setStatus(loading ? CHECKING : ""); return; }
 
-    const list = prefs.hideWatched ? feed.videos.filter((v) => !watched[v.id]) : feed.videos;
+    let list = prefs.hideWatched ? feed.videos.filter((v) => !watched[v.id]) : feed.videos.slice();
+    if (creatorFilter) list = list.filter((v) => v.channelId === creatorFilter);
+    const showHero = viewMode === "grid" && list.length > 0;
+    el.heroSlot.replaceChildren();
+    el.feedHeading.hidden = !showHero;
+    if (showHero) {
+      const hero = videoRow(list[0]);
+      hero.classList.add("hero-card");
+      el.heroSlot.append(hero);
+    }
     const frag = document.createDocumentFragment();
-    for (const v of list) frag.appendChild(videoRow(v));
+    for (const v of (showHero ? list.slice(1) : list)) frag.appendChild(videoRow(v));
     el.feed.appendChild(frag);
+    renderCreators(feed.videos);
 
     el.empty.hidden = list.length > 0;
     el.empty.textContent = feed.videos.length === 0
@@ -456,12 +479,18 @@
       openPlayer(v);
     });
 
+    const wrap = document.createElement("span");
+    wrap.className = "thumbwrap";
     const img = document.createElement("img");
     img.className = "thumb";
     img.loading = "lazy";
     img.alt = "";
     img.referrerPolicy = "no-referrer";
     if (v.thumb) img.src = v.thumb;
+    const play = document.createElement("span");
+    play.className = "play";
+    play.setAttribute("aria-hidden", "true");
+    wrap.append(img, play);
 
     const meta = document.createElement("div");
     meta.className = "meta";
@@ -470,9 +499,9 @@
     title.textContent = v.title;
     const sub = document.createElement("div");
     sub.className = "sub";
-    sub.textContent = `${v.channelTitle} · ${timeAgo(v.publishedAt)}`;
+    sub.append(avatarEl(v.channelTitle, v.channelThumb), document.createTextNode(`${v.channelTitle} · ${timeAgo(v.publishedAt)}`));
     meta.append(title, sub);
-    a.append(img, meta);
+    a.append(wrap, meta);
 
     const check = document.createElement("button");
     check.type = "button";
@@ -489,6 +518,88 @@
 
     li.append(a, check);
     return li;
+  }
+
+  function initials(name) {
+    const parts = String(name || "").trim().split(/\s+/).slice(0, 2);
+    const letters = parts.map((part) => part[0] || "").join("").toUpperCase();
+    return letters || "?";
+  }
+
+  function avatarEl(name, thumb) {
+    const span = document.createElement("span");
+    span.className = "avatar";
+    if (thumb) {
+      const img = document.createElement("img");
+      img.alt = "";
+      img.referrerPolicy = "no-referrer";
+      img.src = thumb;
+      span.append(img);
+    } else {
+      span.textContent = initials(name);
+    }
+    return span;
+  }
+
+  function renderCreators(videos) {
+    const byId = new Map();
+    for (const video of videos || []) {
+      if (!video.channelId) continue;
+      if (!byId.has(video.channelId)) {
+        byId.set(video.channelId, {
+          id: video.channelId,
+          title: video.channelTitle,
+          thumb: video.channelThumb || "",
+          hasNew: false,
+        });
+      }
+      if (!watched[video.id]) byId.get(video.channelId).hasNew = true;
+    }
+    const creators = [...byId.values()];
+    const noun = creators.length === 1 ? "Creator" : "Creators";
+    el.creatorCount.textContent = creators.length ? `Subscribed (${creators.length} ${noun})` : "Subscribed";
+    const shown = creatorsExpanded ? creators : creators.slice(0, 8);
+    const all = document.createElement("button");
+    all.type = "button";
+    all.className = "creator";
+    all.setAttribute("aria-pressed", String(!creatorFilter));
+    const allName = document.createElement("span");
+    allName.className = "name";
+    allName.textContent = "Subscribed";
+    all.append(avatarEl("Subscribed", ""), allName);
+    all.addEventListener("click", () => { creatorFilter = ""; render(); closeSidebar(); });
+    const frag = document.createDocumentFragment();
+    frag.append(all);
+    for (const creator of shown) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "creator";
+      btn.setAttribute("aria-pressed", String(creatorFilter === creator.id));
+      const name = document.createElement("span");
+      name.className = "name";
+      name.textContent = creator.title;
+      const dot = document.createElement("span");
+      dot.className = "dot";
+      dot.hidden = !creator.hasNew;
+      dot.setAttribute("aria-label", creator.hasNew ? "New videos" : "");
+      btn.append(avatarEl(creator.title, creator.thumb), name, dot);
+      btn.addEventListener("click", () => { creatorFilter = creator.id; render(); closeSidebar(); });
+      frag.append(btn);
+    }
+    el.creatorList.replaceChildren(frag);
+    el.moreCreators.hidden = creators.length <= 8;
+    el.moreCreators.textContent = creatorsExpanded ? "Fewer" : "More";
+  }
+
+  function openSidebar() {
+    el.sidebar.classList.add("open");
+    el.sidebarBackdrop.hidden = false;
+    el.sidebarOpen.setAttribute("aria-expanded", "true");
+  }
+  function closeSidebar() {
+    el.sidebar.classList.remove("open");
+    el.sidebarBackdrop.hidden = true;
+    el.sidebarOpen.setAttribute("aria-expanded", "false");
   }
 
   function setWatched(id, on, li) {
@@ -572,9 +683,21 @@
     el.hideWatched.checked = false;
     el.showShorts.checked = false;
     el.feed.replaceChildren();
+    el.heroSlot.replaceChildren();
+    creatorFilter = "";
     showError("");
     show("signIn");
+    closeSidebar();
   });
+  el.signOutSide.addEventListener("click", () => el.signOutBtn.click());
+  el.moreCreators.addEventListener("click", () => {
+    creatorsExpanded = !creatorsExpanded;
+    const feed = store.get(feedKey());
+    if (feed) renderCreators(feed.videos);
+  });
+  el.sidebarOpen.addEventListener("click", (e) => { e.stopPropagation(); openSidebar(); });
+  el.sidebarClose.addEventListener("click", closeSidebar);
+  el.sidebarBackdrop.addEventListener("click", closeSidebar);
 
   function refreshInBackground() {
     if (loading || (views.feed.hidden && views.player.hidden) || document.visibilityState !== "visible" || !validToken()) return;

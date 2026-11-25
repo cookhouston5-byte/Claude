@@ -1,13 +1,15 @@
 {
-  "name": "Kalmvue",
-  "short_name": "Kalmvue",
-  "description": "Only the latest videos from the channels you subscribe to.",
+  "name": "kalmvue",
+  "short_name": "kalmvue",
+  "description": "Your subscribed creators only.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#111318",
-  "theme_color": "#111318",
+  "background_color": "#13202B",
+  "theme_color": "#13202B",
   "icons": [
-    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
   ]
 }
