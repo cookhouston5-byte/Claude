@@ -41,6 +41,7 @@
     homeLink: $("homeLink"), hero: $("hero"),
     searchForm: $("searchForm"), q: $("q"), categories: $("categories"), recentWrap: $("recentWrap"), recent: $("recent"),
     notice: $("notice"), status: $("status"), results: $("results"), error: $("error"),
+    listViewBtn: $("listViewBtn"), gridViewBtn: $("gridViewBtn"),
     backBtn: $("backBtn"), playerBox: $("playerBox"), playerTitle: $("playerTitle"), playerSub: $("playerSub"),
     fixedBtn: $("fixedBtn"), fixedLabel: $("fixedLabel"), ytLink: $("ytLink"),
   };
@@ -49,6 +50,16 @@
   let recent = store.get("recent", []);
   let current = null;
   let searching = false;
+  let viewMode = window.ViewMode.normalizeView(store.get("viewMode", "list"));
+
+  function applyView(next) {
+    viewMode = window.ViewMode.normalizeView(next);
+    store.set("viewMode", viewMode);
+    el.results.classList.toggle("grid", viewMode === "grid");
+    document.body.classList.toggle("view-grid", viewMode === "grid");
+    el.listViewBtn.setAttribute("aria-pressed", String(viewMode === "list"));
+    el.gridViewBtn.setAttribute("aria-pressed", String(viewMode === "grid"));
+  }
 
   function show(name) {
     for (const [k, v] of Object.entries(views)) v.hidden = k !== name;
@@ -282,15 +293,21 @@
   el.clearBtn.addEventListener("click", () => {
     recent = []; fixed = {};
     try {
-      Object.keys(localStorage).filter((k) => k.startsWith("fixfocus.")).forEach((k) => localStorage.removeItem(k));
+      Object.keys(localStorage)
+        .filter((k) => k.startsWith("fixfocus.") && k !== "fixfocus.viewMode")
+        .forEach((k) => localStorage.removeItem(k));
     } catch { /* ignore */ }
     renderRecent();
     el.results.replaceChildren();
     el.status.textContent = "History cleared.";
   });
 
+  el.listViewBtn.addEventListener("click", () => applyView("list"));
+  el.gridViewBtn.addEventListener("click", () => applyView("grid"));
+
   async function start() {
     store.del("apiKey");
+    applyView(viewMode);
     let available = false;
     try {
       const res = await fetch("/api/status");
