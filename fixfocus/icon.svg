@@ -1,10 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
-    <mask id="ffJaw">
-      <rect width="64" height="64" fill="#fff"/>
+    <mask id="ffJaw" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" x="-16" y="-16" width="96" height="96">
+      <rect x="-16" y="-16" width="96" height="96" fill="#fff"/>
       <rect x="14" y="-5.2" width="28" height="10.4" rx="5.2" fill="#000" transform="translate(32 32) rotate(312)"/>
     </mask>
   </defs>
+  <g transform="translate(-1.2483 -1.1859) scale(0.954708)">
   <g mask="url(#ffJaw)">
     <path d="M 51.32 26.82 A 20 20 0 0 1 16.68 44.86" fill="none" stroke="#1E2A44" stroke-width="12" stroke-linecap="butt"/>
     <rect x="-4" y="-5" width="8" height="10" rx="2" fill="#1E2A44" transform="translate(58.14 35.67) rotate(-82)"/>
@@ -16,4 +17,5 @@
     <path d="M 43.76 15.82 A 20 20 0 0 1 51.7 28.53" fill="none" stroke="#F25C1F" stroke-width="12" stroke-linecap="butt"/>
   </g>
   <path d="M26.9 24.5 L26.9 39.5 L41.2 32 Z" fill="#F25C1F" stroke="#F25C1F" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>
+  </g>
 </svg>
