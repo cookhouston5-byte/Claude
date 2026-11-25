@@ -37,6 +37,7 @@
     hideWatched: $("hideWatched"), showShorts: $("showShorts"), status: $("status"),
     progress: $("progress"), progressBar: $("progressBar"),
     feed: $("feed"), empty: $("empty"), error: $("error"),
+    listViewBtn: $("listViewBtn"), gridViewBtn: $("gridViewBtn"),
     backBtn: $("backBtn"), playerBox: $("playerBox"), playerTitle: $("playerTitle"),
     playerSub: $("playerSub"), ytLink: $("ytLink"),
   };
@@ -49,6 +50,16 @@
 
   const prefs = Object.assign({ hideWatched: false, showShorts: false }, store.get("prefs", {}));
   let watched = pruneWatched(store.get("watched", {}));
+  let viewMode = window.ViewMode.normalizeView(store.get("viewMode", "list"));
+
+  function applyView(next) {
+    viewMode = window.ViewMode.normalizeView(next);
+    store.set("viewMode", viewMode);
+    el.feed.classList.toggle("grid", viewMode === "grid");
+    document.body.classList.toggle("view-grid", viewMode === "grid");
+    el.listViewBtn.setAttribute("aria-pressed", String(viewMode === "list"));
+    el.gridViewBtn.setAttribute("aria-pressed", String(viewMode === "grid"));
+  }
 
   function pruneWatched(w) {
     const cutoff = Date.now() - WATCHED_KEEP_DAYS * 864e5;
@@ -523,6 +534,8 @@
   });
 
   el.refreshBtn.addEventListener("click", () => refresh({ interactive: true, videos: "always" }));
+  el.listViewBtn.addEventListener("click", () => applyView("list"));
+  el.gridViewBtn.addEventListener("click", () => applyView("grid"));
 
   el.hideWatched.checked = prefs.hideWatched;
   el.showShorts.checked = prefs.showShorts;
@@ -585,6 +598,7 @@
   async function start() {
     // The old page let a visitor save a Client ID in this browser. That is gone.
     store.del("clientId");
+    applyView(viewMode);
     if (!clientId) { show("soon"); return; }
 
     const signedIn = store.get("signedIn", false);
