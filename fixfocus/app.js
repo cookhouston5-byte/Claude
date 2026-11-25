@@ -12,9 +12,24 @@
   const F = window.FixFilter;
 
   const CATEGORIES = [
+    ["All", ""],
+    ["Automotive", "car"],
+    ["Appliances", "appliance"],
+    ["Home Repair", "home repair"],
+    ["Electronics", "electronics"],
+    ["Woodworking", "woodworking"],
+    ["Plumbing", "plumbing"],
+  ];
+  const POPULAR = [
+    ["Plumbing", "plumbing"],
+    ["Electrical", "electrical"],
+    ["Automotive", "car"],
+    ["Appliances", "appliance"],
+  ];
+  const SIDE_CATEGORIES = [
     ["Home", "home repair"],
     ["Plumbing", "plumbing"],
-    ["Electrical", "electrical outlet switch"],
+    ["Electrical", "electrical"],
     ["Car", "car"],
     ["Phone", "phone"],
     ["Computer", "computer"],
@@ -41,6 +56,8 @@
     homeLink: $("homeLink"), hero: $("hero"),
     searchForm: $("searchForm"), q: $("q"), categories: $("categories"), recentWrap: $("recentWrap"), recent: $("recent"),
     notice: $("notice"), status: $("status"), results: $("results"), error: $("error"),
+    heroSlot: $("heroSlot"), resultsHeading: $("resultsHeading"),
+    sideTools: $("sideTools"), sideCategories: $("sideCategories"), noRecent: $("noRecent"),
     listViewBtn: $("listViewBtn"), gridViewBtn: $("gridViewBtn"),
     backBtn: $("backBtn"), playerBox: $("playerBox"), playerTitle: $("playerTitle"), playerSub: $("playerSub"),
     fixedBtn: $("fixedBtn"), fixedLabel: $("fixedLabel"), ytLink: $("ytLink"),
@@ -51,6 +68,8 @@
   let current = null;
   let searching = false;
   let viewMode = window.ViewMode.normalizeView(store.get("viewMode", "list"));
+  let lastVideos = [];
+  let activeChip = "All";
 
   function applyView(next) {
     viewMode = window.ViewMode.normalizeView(next);
@@ -59,6 +78,7 @@
     document.body.classList.toggle("view-grid", viewMode === "grid");
     el.listViewBtn.setAttribute("aria-pressed", String(viewMode === "list"));
     el.gridViewBtn.setAttribute("aria-pressed", String(viewMode === "grid"));
+    if (lastVideos.length) renderResults(lastVideos);
   }
 
   function show(name) {
@@ -173,8 +193,17 @@
   }
 
   function renderResults(videos) {
+    lastVideos = videos;
+    const grid = viewMode === "grid" && videos.length > 0;
+    el.heroSlot.replaceChildren();
+    el.resultsHeading.hidden = !grid;
+    if (grid) {
+      const hero = resultRow(videos[0]);
+      hero.classList.add("hero-card");
+      el.heroSlot.append(hero);
+    }
     const frag = document.createDocumentFragment();
-    for (const v of videos) frag.appendChild(resultRow(v));
+    for (const v of (grid ? videos.slice(1) : videos)) frag.appendChild(resultRow(v));
     el.results.replaceChildren(frag);
   }
 
@@ -193,7 +222,10 @@
     if (v.thumb) img.src = v.thumb;
     const dur = document.createElement("span");
     dur.className = "dur"; dur.textContent = fmtDuration(v.durationSec);
-    tw.append(img, dur);
+    const play = document.createElement("span");
+    play.className = "play";
+    play.setAttribute("aria-hidden", "true");
+    tw.append(img, dur, play);
 
     const meta = document.createElement("span");
     meta.className = "meta";
@@ -214,24 +246,57 @@
     return li;
   }
 
+  function onCategory(label, q) {
+    activeChip = label;
+    document.querySelectorAll("#categories .chip").forEach((btn) => {
+      btn.setAttribute("aria-pressed", String(btn.textContent === label));
+    });
+    if (!q) {
+      el.q.value = "";
+      notice("");
+      showError("");
+      el.hero.hidden = false;
+      lastVideos = [];
+      el.heroSlot.replaceChildren();
+      el.results.replaceChildren();
+      el.resultsHeading.hidden = true;
+      el.status.textContent = "";
+      return;
+    }
+    el.q.value = q + " ";
+    el.q.focus();
+    notice(`Now say what's wrong with it, like "${q} won't turn on".`);
+  }
+
+  function sideButton(label, q) {
+    const c = document.createElement("button");
+    c.type = "button";
+    c.className = "side-link";
+    c.textContent = label;
+    c.addEventListener("click", () => onCategory(label, q));
+    return c;
+  }
+
   function renderCategories() {
     el.categories.replaceChildren(...CATEGORIES.map(([label, q]) => {
       const c = document.createElement("button");
-      c.type = "button"; c.className = "chip"; c.textContent = label;
-      c.addEventListener("click", () => {
-        el.q.value = q + " ";
-        el.q.focus();
-        notice(`Now say what's wrong with it, like "${q} won't turn on".`);
-      });
+      c.type = "button";
+      c.className = "chip";
+      c.textContent = label;
+      c.setAttribute("aria-pressed", String(label === activeChip));
+      c.addEventListener("click", () => onCategory(label, q));
       return c;
     }));
+    el.sideTools.replaceChildren(...POPULAR.map(([label, q]) => sideButton(label, q)));
+    el.sideCategories.replaceChildren(...SIDE_CATEGORIES.map(([label, q]) => sideButton(label, q)));
   }
 
   function renderRecent() {
     el.recentWrap.hidden = recent.length === 0;
+    el.noRecent.hidden = recent.length > 0;
     el.recent.replaceChildren(...recent.map((q) => {
       const c = document.createElement("button");
-      c.type = "button"; c.className = "chip"; c.textContent = q;
+      c.type = "button"; c.className = "side-link"; c.textContent = q;
       c.addEventListener("click", () => runSearch(q));
       return c;
     }));
