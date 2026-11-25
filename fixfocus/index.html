@@ -2,6 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <script>
+    // The old static address can't run FixFocus's search server, so send visitors to the live app.
+    if (location.hostname === "fixfocus.onrender.com") location.replace("https://fixfocus-app.onrender.com" + location.pathname + location.search + location.hash);
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>FixFocus — The Repair &amp; DIY Video Hub</title>
   <meta name="description" content="Only videos that help you fix things. No distractions.">
