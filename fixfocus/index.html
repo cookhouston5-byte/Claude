@@ -7,9 +7,75 @@
     if (location.hostname === "fixfocus.onrender.com") location.replace("https://fixfocus-app.onrender.com" + location.pathname + location.search + location.hash);
   </script>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>FixFocus — The Repair &amp; DIY Video Hub</title>
-  <meta name="description" content="Only videos that help you fix things. No distractions.">
+  <title>FixFocus — Distraction-Free Repair &amp; DIY YouTube Videos</title>
+  <meta name="description" content="Search and watch repair, home, car, and DIY YouTube videos without Shorts, homepage feeds, or algorithmic recommendations.">
+  <link rel="canonical" href="https://fixfocus.app/">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://fixfocus.app/">
+  <meta property="og:title" content="FixFocus — Distraction-Free Repair &amp; DIY YouTube Videos">
+  <meta property="og:description" content="Search and watch repair, home, car, and DIY YouTube videos without Shorts, homepage feeds, or algorithmic recommendations.">
+  <meta property="og:image" content="https://fixfocus.app/icon-512.png">
+  <meta property="og:site_name" content="FixFocus">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="FixFocus — Distraction-Free Repair &amp; DIY YouTube Videos">
+  <meta name="twitter:description" content="Search and watch repair, home, car, and DIY YouTube videos without Shorts, homepage feeds, or algorithmic recommendations.">
+  <meta name="twitter:image" content="https://fixfocus.app/icon-512.png">
   <meta name="theme-color" content="#F5F6F8">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebApplication",
+        "name": "FixFocus",
+        "url": "https://fixfocus.app/",
+        "description": "Search and watch repair, home, car, and DIY YouTube videos without Shorts, homepage feeds, or algorithmic recommendations.",
+        "applicationCategory": "MultimediaApplication",
+        "operatingSystem": "Any",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "isAccessibleForFree": true
+      },
+      {
+        "@type": "FAQPage",
+        "url": "https://fixfocus.app/",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "How do I watch YouTube repair videos without distractions or Shorts?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Search on FixFocus for the repair, home, car, or DIY job you need. FixFocus asks YouTube for matches, drops Shorts and entertainment, and plays the video on this page so you are not sent through YouTube's homepage feed or recommendation sidebar."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Is FixFocus free?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. FixFocus is free to use. You do not pay to search or watch."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Do I need an account to use FixFocus?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. You can search and watch without signing in. An email address is optional and is only used if you ask for updates."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Does FixFocus host the videos?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. Videos play through YouTube. FixFocus is not made by, or affiliated with, YouTube or Google."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon-180.png">
@@ -121,6 +187,33 @@
 
         <p id="error" class="error" role="alert" hidden></p>
       </main>
+
+      <section class="about" id="about" aria-labelledby="aboutHeading">
+        <h2 id="aboutHeading">About FixFocus</h2>
+        <p>FixFocus is a free way to search and watch repair, home, car, and DIY YouTube videos without Shorts, homepage feeds, or algorithmic recommendations. Type what is broken. FixFocus asks YouTube for matches, keeps the repair and how-to videos, and plays them here so you can finish the job and leave.</p>
+        <h3>Quick answers</h3>
+        <dl>
+          <dt>How do I watch YouTube repair videos without distractions or Shorts?</dt>
+          <dd>Search here for the repair you need. FixFocus drops Shorts and plays the video on this page, so YouTube's homepage and suggested videos stay out of the way.</dd>
+          <dt>Is FixFocus free?</dt>
+          <dd>Yes. FixFocus is free to use. You do not pay to search or watch.</dd>
+          <dt>Do I need an account?</dt>
+          <dd>No. You can search and watch without signing in. Email updates are optional and are not an account.</dd>
+          <dt>Does FixFocus host the videos?</dt>
+          <dd>No. Videos play through YouTube. FixFocus is not made by, or affiliated with, YouTube or Google.</dd>
+        </dl>
+      </section>
+
+      <section class="signup" aria-labelledby="signupHeading">
+        <h2 id="signupHeading">Want updates on FixFocus, Kalmvue, and new distraction-free tools?</h2>
+        <p class="fine">Optional. Searching and watching never require an email. <a href="privacy.html">Privacy</a></p>
+        <form id="signupForm" method="post" action="https://docs.google.com/forms/d/e/1FAIpQLSeaopJ5k9lzXq0ND9d1nOHVco7f4BYwDWdg9R73ML_xOvCAPA/formResponse" target="_blank">
+          <label class="sr-only" for="signupEmail">Email address</label>
+          <input id="signupEmail" name="entry.954349592" type="email" inputmode="email" autocomplete="email" maxlength="254" required placeholder="you@example.com" spellcheck="false" aria-describedby="signupStatus">
+          <button class="btn primary" type="submit">Notify me</button>
+          <p id="signupStatus" class="signup-status" role="status" aria-live="polite"></p>
+        </form>
+      </section>
 
       <footer class="footer">
         <a href="privacy.html">Privacy</a> ·
