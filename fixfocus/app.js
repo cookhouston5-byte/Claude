@@ -370,6 +370,66 @@
   el.listViewBtn.addEventListener("click", () => applyView("list"));
   el.gridViewBtn.addEventListener("click", () => applyView("grid"));
 
+  const SIGNUP_FALLBACK = "https://docs.google.com/forms/d/e/1FAIpQLSeaopJ5k9lzXq0ND9d1nOHVco7f4BYwDWdg9R73ML_xOvCAPA/viewform";
+
+  function setSignupStatus(message, { error = false, fallback = false } = {}) {
+    const status = $("signupStatus");
+    if (!status) return;
+    status.replaceChildren();
+    status.classList.toggle("is-error", error);
+    if (message) status.append(document.createTextNode(message));
+    if (fallback) {
+      if (message) status.append(document.createTextNode(" "));
+      const link = document.createElement("a");
+      link.href = SIGNUP_FALLBACK;
+      link.target = "_blank";
+      link.rel = "noopener";
+      link.textContent = "Open the signup form";
+      status.append(link);
+      status.append(document.createTextNode("."));
+    }
+  }
+
+  function bindSignup() {
+    const form = $("signupForm");
+    const input = $("signupEmail");
+    if (!form || !input) return;
+    const button = form.querySelector("button[type=submit]");
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const email = input.value.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        setSignupStatus("Enter a valid email address.", { error: true });
+        input.focus();
+        return;
+      }
+      if (button) button.disabled = true;
+      setSignupStatus("Saving your email…");
+      try {
+        const res = await fetch("/api/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        let body = {};
+        try { body = await res.json(); } catch { body = {}; }
+        if (res.ok && body.ok === true) {
+          input.value = "";
+          setSignupStatus("Thanks. You're on the list. Updates are occasional, and you can opt out at any time.");
+          return;
+        }
+        const friendly = res.status === 400
+          ? (body.error || "Enter a valid email address.")
+          : (body.error || "Could not save your email right now.");
+        setSignupStatus(friendly, { error: true, fallback: res.status !== 400 });
+      } catch {
+        setSignupStatus("Could not save your email right now.", { error: true, fallback: true });
+      } finally {
+        if (button) button.disabled = false;
+      }
+    });
+  }
+
   async function start() {
     store.del("apiKey");
     applyView(viewMode);
@@ -387,5 +447,6 @@
     if (q) runSearch(q, { push: false });
     else el.q.focus();
   }
+  bindSignup();
   start();
 })();

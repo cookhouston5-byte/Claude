@@ -1,8 +1,9 @@
 /* FixFocus server.
  *
- * Serves the static site and a single search endpoint. The YouTube Data API
- * key stays in the YOUTUBE_API_KEY environment variable and is never sent to
- * the browser.
+ * Serves the static site, a search endpoint, and an optional email signup.
+ * The YouTube Data API key stays in the YOUTUBE_API_KEY environment variable
+ * and is never sent to the browser. Signup addresses are forwarded to a
+ * Google Form and are not stored on this server.
  *
  * Quota protection, all in memory (the free host forgets it on restart):
  * - identical searches are reused for 24 hours
@@ -31,6 +32,14 @@ const UPSTREAM_MESSAGE = "FixFocus couldn't reach YouTube just now. Please try a
 const RATE_MESSAGE = "Too many searches in a short time. Wait a minute and try again.";
 const DAY_MESSAGE = "You've used today's search limit for this connection. It resets within 24 hours. Searches you already made still work.";
 
+const SIGNUP_BODY_LIMIT = 4096;
+const SIGNUP_MAX_PER_HOUR = 5;
+const SIGNUP_WINDOW_MS = 60 * 60 * 1000;
+const SIGNUP_SAVE_ERROR = "Could not save your email right now.";
+const DEFAULT_SIGNUP_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSeaopJ5k9lzXq0ND9d1nOHVco7f4BYwDWdg9R73ML_xOvCAPA/formResponse";
+const DEFAULT_SIGNUP_FORM_FIELD = "entry.954349592";
+const EMAIL_RE = /^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$/;
+
 const QUOTA_REASONS = new Set(["quotaExceeded", "dailyLimitExceeded", "rateLimitExceeded"]);
 const DOWN_REASONS = new Set([
   "keyInvalid",
@@ -51,18 +60,73 @@ const TYPES = {
   ".ico": "image/x-icon",
   ".png": "image/png",
   ".txt": "text/plain; charset=utf-8",
+  ".xml": "application/xml; charset=utf-8",
 };
 
 const BLOCKED_FILES = new Set(["server.js", "server.test.js", "test.js", "package.json", "package-lock.json"]);
+
+function normalizeEmail(value) {
+  if (typeof value !== "string") return "";
+  const email = value.trim();
+  if (!email || email.length > 254 || !EMAIL_RE.test(email)) return "";
+  const tld = email.slice(email.lastIndexOf(".") + 1);
+  if (tld.length < 2) return "";
+  return email;
+}
+
+function readJsonBody(req, limit) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let size = 0;
+    let settled = false;
+    const fail = (error) => {
+      if (settled) return;
+      settled = true;
+      reject(error);
+    };
+    const onData = (chunk) => {
+      if (settled) return;
+      size += chunk.length;
+      if (size > limit) {
+        req.off("data", onData);
+        req.resume();
+        fail(Object.assign(new Error("limit"), { code: "LIMIT" }));
+        return;
+      }
+      chunks.push(chunk);
+    };
+    req.on("data", onData);
+    req.on("end", () => {
+      if (settled) return;
+      const text = Buffer.concat(chunks).toString("utf8").trim();
+      settled = true;
+      if (!text) {
+        resolve({});
+        return;
+      }
+      try { resolve(JSON.parse(text)); }
+      catch { reject(Object.assign(new Error("json"), { code: "JSON" })); }
+    });
+    req.on("error", fail);
+  });
+}
 
 function createApp(options = {}) {
   const apiKey = String(options.apiKey ?? process.env.YOUTUBE_API_KEY ?? "").trim();
   const fetchImpl = options.fetchImpl || globalThis.fetch;
   const limits = { ...DEFAULT_LIMITS, ...(options.limits || {}) };
+  const signupPerHour = Number.isInteger(options.signupPerHour) && options.signupPerHour > 0
+    ? options.signupPerHour
+    : SIGNUP_MAX_PER_HOUR;
+  const signupFormUrl = String(options.signupFormUrl || process.env.SIGNUP_FORM_URL || DEFAULT_SIGNUP_FORM_URL).trim()
+    || DEFAULT_SIGNUP_FORM_URL;
+  const signupFormField = String(options.signupFormField || process.env.SIGNUP_FORM_FIELD || DEFAULT_SIGNUP_FORM_FIELD).trim()
+    || DEFAULT_SIGNUP_FORM_FIELD;
 
   const cache = new Map();
   const inflight = new Map();
   const visitors = new Map();
+  const signupHits = new Map();
   const quota = { dayStart: Date.now(), count: 0 };
 
   function clientIp(req) {
@@ -206,6 +270,79 @@ function createApp(options = {}) {
     })).filter(filter.isFixVideo).map(({ description, ...video }) => video);
   }
 
+  function allowSignup(ip, now) {
+    if (signupHits.size > 500) {
+      for (const [key, bucket] of signupHits) {
+        if (now - bucket.start >= SIGNUP_WINDOW_MS) signupHits.delete(key);
+      }
+    }
+    let bucket = signupHits.get(ip);
+    if (!bucket || now - bucket.start >= SIGNUP_WINDOW_MS) {
+      bucket = { start: now, count: 0 };
+      signupHits.set(ip, bucket);
+    }
+    if (bucket.count >= signupPerHour) return false;
+    bucket.count += 1;
+    return true;
+  }
+
+  async function handleSubscribe(req, res) {
+    if (!sameSite(req)) {
+      return sendJson(res, 403, { error: "FixFocus only accepts signups from its own site." });
+    }
+    const now = Date.now();
+    if (!allowSignup(clientIp(req), now)) {
+      return sendJson(res, 429, { error: "Too many signup attempts. Please wait an hour and try again." });
+    }
+
+    const declared = Number(req.headers["content-length"]);
+    if (Number.isFinite(declared) && declared > SIGNUP_BODY_LIMIT) {
+      req.resume();
+      return sendJson(res, 413, { error: "That request is too large." });
+    }
+
+    let payload;
+    try {
+      payload = await readJsonBody(req, SIGNUP_BODY_LIMIT);
+    } catch (error) {
+      if (res.headersSent || res.writableEnded) return;
+      if (error && error.code === "LIMIT") return sendJson(res, 413, { error: "That request is too large." });
+      return sendJson(res, 400, { error: "Enter a valid email address." });
+    }
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      return sendJson(res, 400, { error: "Enter a valid email address." });
+    }
+
+    const email = normalizeEmail(payload.email);
+    if (!email) return sendJson(res, 400, { error: "Enter a valid email address." });
+
+    const body = new URLSearchParams();
+    body.set(signupFormField, email);
+    let upstream;
+    try {
+      upstream = await fetchImpl(signupFormUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: body.toString(),
+        redirect: "follow",
+        signal: AbortSignal.timeout(12000),
+      });
+    } catch {
+      console.error("Signup forward failed");
+      return sendJson(res, 502, { error: SIGNUP_SAVE_ERROR });
+    }
+    try {
+      if (upstream && typeof upstream.text === "function") await upstream.text();
+    } catch { /* The form body is not used. */ }
+
+    const status = Number(upstream && upstream.status);
+    if (!(status >= 200 && status < 300)) {
+      console.error("Signup forward rejected", status || "");
+      return sendJson(res, 502, { error: SIGNUP_SAVE_ERROR });
+    }
+    return sendJson(res, 200, { ok: true });
+  }
+
   function sendSearchError(res, error) {
     if (QUOTA_REASONS.has(error.reason)) {
       return sendJson(res, 429, { error: "quota", message: QUOTA_MESSAGE });
@@ -312,6 +449,18 @@ function createApp(options = {}) {
     }
     if (url.pathname === "/api/search" && req.method === "GET") {
       return handleSearch(req, res, url);
+    }
+    if (url.pathname === "/api/subscribe") {
+      if (req.method !== "POST") {
+        res.writeHead(405, {
+          "Content-Type": "text/plain; charset=utf-8",
+          Allow: "POST",
+          "X-Content-Type-Options": "nosniff",
+        });
+        res.end("Method not allowed");
+        return;
+      }
+      return handleSubscribe(req, res);
     }
     if (url.pathname.startsWith("/api/")) {
       res.writeHead(req.method === "GET" ? 404 : 405, { "Content-Type": "text/plain; charset=utf-8" });
